@@ -28,3 +28,5 @@ class KernelFunction(object):
   
   def compute( self, params, x1, x2 = None ):
     raise NotImplementedError
+    
+  
