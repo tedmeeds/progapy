@@ -1,1 +1,1 @@
-__all__ = ['helpers','gps','kernels','examples']
+__all__ = ['helpers','gps','kernels','noises','means','examples']

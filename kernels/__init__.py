@@ -1,1 +1,1 @@
-__all__ = ['squared_exponential_kernel']
+__all__ = ['squared_exponential','matern32']
