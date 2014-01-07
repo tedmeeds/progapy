@@ -1,7 +1,7 @@
 import numpy as np
 
 #from progapy.kernels.squared_exponential import SquaredExponentialFunction as Kernel
-from progapy.kernels.matern32 import Matern32Function as Kernel
+from progapy.kernels.matern52 import Matern52Function as Kernel
 from progapy.algos.check_grad import checkgrad
 
 # --------------------------------------------------------------------------- #

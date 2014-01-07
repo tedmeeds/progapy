@@ -1,1 +1,1 @@
-__all__ = ['squared_exponential','matern32']
+__all__ = ['squared_exponential','matern32','matern52']

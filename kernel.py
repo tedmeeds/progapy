@@ -57,7 +57,16 @@ class KernelFunction(object):
     
   def k_sym( self, X, with_self = False ):
     return self.compute_symmetric( self.params, X, with_self )
+
+  def g_free_params( self, gp, typeof ):
     
+    if typeof == "marginal":
+      return self.g_free_params_for_marginal_likelihood( gp )
+    elif typeof == "predictive":
+      return self.g_free_params_for_predictive_likelihood( gp )
+    else:
+      assert False, "no other type of gradient"
+          
   def g_free_params_for_marginal_likelihood( self, gp ):
     yinv = gp.chol_solve_y
     g    = np.zeros( ( gp.N,gp.N,self.get_nbr_params() ) )
