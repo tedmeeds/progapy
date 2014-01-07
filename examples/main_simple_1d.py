@@ -6,9 +6,10 @@ from progapy.gps.basic_regression import BasicRegressionGaussianProcess as GP
 from progapy.kernels.squared_exponential import SquaredExponentialFunction as Kernel
 #from progapy.noises.fixed_noise_model import FixedNoiseModel as Noise
 from progapy.noises.standard_noise_model import StandardNoiseModel as Noise
-from progapy.means.zero_mean_model import ZeroMeanModel as Mean
+#from progapy.means.zero_mean_model import ZeroMeanModel as Mean
+from progapy.means.constant_mean_model import ConstantMeanModel as Mean
 
-np.random.seed(0)
+#np.random.seed(0)
 #from progapy.means.constant_mean_model import ConstantMeanModel as Mean
 
 # --------------------------------------------------------------------------- #
@@ -27,7 +28,7 @@ def generate_data( N ):
 # --------------------------------------------------------------------------- #
 # KERNEL   ------------------------------------------------------------------ #
 # --------------------------------------------------------------------------- #
-kernel_params = np.array([1.0, 0.25])
+kernel_params = np.array([1.50, 0.25])
 kernel_prior  = None
 kernel = Kernel(kernel_params, kernel_prior)
 # --------------------------------------------------------------------------- #
@@ -43,7 +44,7 @@ noise = Noise(noise_params, noise_prior)
 # --------------------------------------------------------------------------- #
 # MEAN     ------------------------------------------------------------------ #
 # --------------------------------------------------------------------------- #
-mean_params = None
+mean_params = np.array( [np.random.randn()])
 mean_prior  = None
 mean = Mean(mean_params, mean_prior)
 # --------------------------------------------------------------------------- #
