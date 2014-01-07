@@ -72,9 +72,8 @@ class KernelFunction(object):
       assert False, "no other type of gradient"
           
   def g_free_params_for_marginal_likelihood( self, gp ):
-    yinv = gp.chol_solve_y
     g    = np.zeros( ( gp.N,gp.N,self.get_nbr_params() ) )
-    J = self.jacobians( gp.gram, gp.X )
+    J    = self.jacobians( gp.gram, gp.X )
     
     g = np.zeros( self.get_nbr_params() )
     for d in range( self.get_nbr_params() ):

@@ -4,7 +4,8 @@ import pylab as pp
 
 from progapy.gps.basic_regression import BasicRegressionGaussianProcess as GP
 from progapy.kernels.squared_exponential import SquaredExponentialFunction as Kernel
-from progapy.noises.fixed_noise_model import FixedNoiseModel as Noise
+#from progapy.noises.fixed_noise_model import FixedNoiseModel as Noise
+from progapy.noises.standard_noise_model import StandardNoiseModel as Noise
 from progapy.means.zero_mean_model import ZeroMeanModel as Mean
 
 np.random.seed(0)
