@@ -20,15 +20,6 @@ class Matern32Function( KernelFunction ):
     
     return params[0]*np.exp( -0.5*fast_distance( self.params[1:], X1, X2 ) ) 
     
-  def g_free_params( self, gp, typeof ):
-    
-    if typeof == "marginal":
-      return self.g_free_params_for_marginal_likelihood( gp )
-    elif typeof == "predictive":
-      return self.g_free_params_for_predictive_likelihood( gp )
-    else:
-      assert False, "no other type of gradient"
-      
   # assumes free parameters...
   def jacobians( self, K, X ):
     N = len(X)
