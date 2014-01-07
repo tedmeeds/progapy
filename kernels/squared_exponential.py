@@ -5,29 +5,7 @@ from progapy.kernel import KernelFunction
 import pdb
 
 class SquaredExponentialFunction( KernelFunction ):
-  
-  def set_params( self, params ):
-    self.params      = params
-    self.free_params = np.log( params )
-    
-  def set_free_params( self, free_params ):
-    self.free_params = free_params
-    self.params      = np.exp( free_params )
-    
-  def get_nbr_params( self ):
-    return len(self.params)
-  
-  def get_free_params( self ):
-    return self.free_params
-    
-  def get_params( self ):
-    return params 
-
-  def logprior( self ):
-    if self.priors is not None:
-      return self.priors.logdensity()
-    return 0
-      
+       
   def compute_symmetric( self, params, X, with_self ):
     N,D,N2,D2 = self.check_inputs( X, X )
     

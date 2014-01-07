@@ -18,24 +18,28 @@ class KernelFunction(object):
       assert x1.shape[1] == x2.shape[1], "2nd dim must be the same for both "
       
     return N1,D1,N2,D2
-    
-  def get_nbr_params( self ):
-    raise NotImplementedError
+  
+  def set_params( self, params ):
+    self.params      = params
+    self.free_params = np.log( params )
     
   def set_free_params( self, free_params ):
-    raise NotImplementedError
+    self.free_params = free_params
+    self.params      = np.exp( free_params )
     
+  def get_nbr_params( self ):
+    return len(self.params)
+  
   def get_free_params( self ):
-    raise NotImplementedError
-    
-  def set_params( self, params ):
-    raise NotImplementedError
+    return self.free_params
     
   def get_params( self ):
-    raise NotImplementedError
-  
+    return params 
+
   def logprior( self ):
-    raise NotImplementedError
+    if self.priors is not None:
+      return self.priors.logdensity()
+    return 0
   
   def jacobians( self, K, X ):
     raise NotImplementedError
