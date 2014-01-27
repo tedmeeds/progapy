@@ -9,7 +9,7 @@ class StandardNoiseModel( NoiseModel ):
     
     if self.priors is not None:
       if hasattr(self.priors,'g') is False:
-        raise AttributeError( "FixedNoiseModel.prior has no method g()")
+        raise AttributeError( "StandardNoiseModel.prior has no method g()")
         
   def var( self, x = None ):
     if x is None:

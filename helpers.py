@@ -16,6 +16,39 @@ a2 = 0.230389; loga2 = np.log( a2 )
 a3 = 0.000972; loga3 = np.log( a3 )
 a4 = 0.078188; loga4 = np.log( a4 )
 
+def json_extract_from_list( param_list, key_name, key_value, value_names ):
+  # go through param_list, looking for key_name == key_value
+  # if found, extract values names from it
+  
+  bfound = False
+  for params in param_list:
+    #print params
+    if params.has_key( key_name ):
+      bfound = True
+      if params[key_name] == key_value:
+        extracts = []
+        #print "starting extraction"
+        for name in value_names:
+          #print "\tchecking %s"%(name)
+          if params.has_key( name ):
+            extracts.append( params[name] )
+            #print "\t\t",extracts
+          else:
+            #print "cannot find: %s"%(name)
+            extracts.append( None )
+            #print "\t\t",extracts
+        #print "extracts", extracts
+        return extracts
+      else:
+        pass #print "cannot find %s"%(key_value)
+    else:
+      pass #print "cannot find %s"%(key_name)
+        
+  if bfound is False:
+    print "WARNING: json_extract_from_list could not find %s:%s"%(key_name, key_value)
+  
+  return [None for i in range(len(value_names))] 
+  
 # ** copied from spearmint **
 def fast_distance( ls, x1, x2 = None ):
   if x2 is None:
