@@ -9,6 +9,7 @@ from progapy.noises.standard_noise_model import StandardNoiseModel as Noise
 #from progapy.means.zero_mean_model import ZeroMeanModel as Mean
 from progapy.means.constant_mean_model import ConstantMeanModel as Mean
 
+from progapy.viewers.view_1d import view as view_this_gp
 #np.random.seed(0)
 #from progapy.means.constant_mean_model import ConstantMeanModel as Mean
 
@@ -50,7 +51,7 @@ mean = Mean(mean_params, mean_prior)
 # --------------------------------------------------------------------------- #
 
 
-N = 50
+N = 3
 trainX, trainY = generate_data( N )
 paramsDict = {"kernel":kernel, "noise":noise, "mean":mean}
 gp = GP( paramsDict, trainX, trainY )
@@ -62,4 +63,21 @@ print gp.marginal_loglikelihood(trainX, trainY)
 
 gp.check_grad( e = 1e-6 )
 gp.optimize( method = "minimize", params = {"maxnumlinesearch":10} )
+pp.figure(1)
+pp.clf()
+view_this_gp( gp, x_range = [-1.5,1.5] )
+pp.axis( [-1.25, 1.25, -3, 3])
 
+np.random.seed(2)
+stepwidth = 0.01
+nsamples = 36
+thetas = gp.sample( method = "slice", params = {"L":0.0,"R":np.inf,"W":stepwidth,"N":nsamples,"MODE":2})
+
+pp.figure(2)
+pp.clf()
+for i in range(36):
+  pp.subplot(6,6,i+1)
+  gp.set_params(thetas[i])
+  view_this_gp( gp, x_range = [-1.5,1.5] )
+  pp.axis( [-1.25, 1.25, -2, 2])
+pp.show()

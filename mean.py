@@ -26,7 +26,7 @@ class MeanModel(object):
     return self.free_params
     
   def get_params( self ):
-    return params 
+    return self.params 
 
   def logprior( self ):
     if self.priors is not None:
@@ -59,7 +59,7 @@ class MeanModel(object):
     g = np.zeros( self.get_nbr_params() )
     for d in range( self.get_nbr_params() ):
       chol_solve_jacobian = spla.cho_solve((gp.L, True), grads[:,d] )
-      g[d] =   np.dot( gp.chol_solve_y.T, grads[:,d] )
+      g[d] =   np.dot( gp.Kinv_dot_y.T, grads[:,d] )
 
     ## g[0]  += (self.prior["signalA"]-1) - self.prior["signalB"]*self.p[0]
     ## g[1:] += -(self.prior["lengthA"]+1) + self.prior["lengthB"]/self.p[1:]

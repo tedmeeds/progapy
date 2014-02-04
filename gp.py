@@ -1,5 +1,7 @@
 import numpy as np
 from progapy.algos import optimize
+from progapy.algos import sample
+import pdb
 
 class GaussianProcess( object ):
   def __init__( self, paramsDict, trainX = None, trainY = None ):
@@ -40,10 +42,11 @@ class GaussianProcess( object ):
     raise NotImplementedError("This GP does not have grad_n_loglike_wrt_free_params!")
     
   def full_posterior( self, testX, use_noise = True ):
-    K_y_y = self.kernel.k( testX, with_self = True )
-    
+    K_y_y = self.kernel.k( testX, with_self = False )
+    #self.mu_proj_x = np.linalg.solve( self.L, self.Y - self.mean.f(self.X) )
+    #pdb.set_trace()
     if use_noise:
-      K_y_y += self.noise.eval( testX )
+      K_y_y += self.noise.var( testX )
       
     # if no training data, then use prior...
     if self.N == 0:
@@ -52,10 +55,10 @@ class GaussianProcess( object ):
 
     K_y_x = self.kernel.k( testX, self.X )
     
-    Ly = np.linalg.solve( self.L, K_y_x.T )
-    mu = self.mean.f(testX) + np.dot(Ly.T, self.mu_proj_y )
+    Linv_dot_Kyx = np.linalg.solve( self.L, K_y_x.T )
+    mu = self.mean.f(testX) + np.dot(Linv_dot_Kyx.T, self.Linv_dot_y )
     
-    cov = K_y_y - np.dot( Ly.T, Ly )
+    cov = K_y_y - np.dot( Linv_dot_Kyx.T, Linv_dot_Kyx )
     return mu, cov
     
   def posterior( self, testX, use_noise = True ):
@@ -68,6 +71,12 @@ class GaussianProcess( object ):
     else:
       assert False, "optimize method = %s does not exist."%(method)
   
+  def sample( self, method, params ):
+    if method == "slice":
+      return sample.sample_gp_with_slice(self, params)
+    else:
+      assert False, "sample method = %s does not exist."%(method)
+      
   def check_grad( self, e, RETURNGRADS = False ):
     optimize.check_gp_gradients( self, e, RETURNGRADS )
       

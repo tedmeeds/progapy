@@ -34,7 +34,7 @@ class KernelFunction(object):
     return self.free_params
     
   def get_params( self ):
-    return params 
+    return self.params 
 
   def logprior( self ):
     if self.priors is not None:
@@ -78,7 +78,7 @@ class KernelFunction(object):
     g = np.zeros( self.get_nbr_params() )
     for d in range( self.get_nbr_params() ):
       chol_solve_jacobian = spla.cho_solve((gp.L, True), J[:,:,d] )
-      g[d] =   0.5*np.dot( np.dot( gp.chol_solve_y.T, J[:,:,d] ), gp.chol_solve_y )\
+      g[d] =   0.5*np.dot( np.dot( gp.Kinv_dot_y.T, J[:,:,d] ), gp.Kinv_dot_y )\
              - 0.5*np.trace( chol_solve_jacobian )
 
     ## g[0]  += (self.prior["signalA"]-1) - self.prior["signalB"]*self.p[0]

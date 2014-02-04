@@ -1,1 +1,1 @@
-__all__ = ["optimize", "mcmc", "sgd", "sgld", "hmc"]
+__all__ = ["optimize", "sample", "mcmc", "sgd", "sgld", "hmc"]
