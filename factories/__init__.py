@@ -1,1 +1,1 @@
-__all__ = ["json2gp"]
+__all__ = ["json2gp","json2prior"]

@@ -2,11 +2,12 @@ import numpy as np
 import scipy.linalg as spla
 
 class NoiseModel(object):
-  def __init__( self, params, priors = None ):
+  def __init__( self, params, prior = None ):
 
-    self.priors = priors
+    self.set_prior( prior )
     self.set_params( params )
     self.check_params( params )
+    
     
   def check_params(self, params):
     raise NotImplementedError
@@ -33,10 +34,16 @@ class NoiseModel(object):
     return self.params 
 
   def logprior( self ):
-    if self.priors is not None:
-      return self.priors.logdensity()
+    if self.prior is not None:
+      return self.prior.logdensity( self.params )
     return 0
     
+  def g_free_params_logprior( self ):
+    if self.prior is not None:
+      return self.prior.g_logdensity( self.params )*self.params
+    else:
+      return np.zeros( (self.get_nbr_params()))
+      
   def g_params( self, gp, typeof ):
     raise NotImplementedError
     
@@ -58,7 +65,7 @@ class NoiseModel(object):
     else:
       assert False, "no other type of gradient"
       
-  def g_free_params_for_marginal_likelihood( self, gp ):
+  def g_free_params_for_predictive_likelihood( self, gp ):
     pass
     
   def g_free_params_for_marginal_likelihood( self, gp ):
@@ -71,6 +78,7 @@ class NoiseModel(object):
       g[d] =   0.5*np.dot( np.dot( gp.Kinv_dot_y.T, J[:,:,d] ), gp.Kinv_dot_y )\
              - 0.5*np.trace( chol_solve_jacobian )
 
+    g += self.g_free_params_logprior()
     ## g[0]  += (self.prior["signalA"]-1) - self.prior["signalB"]*self.p[0]
     ## g[1:] += -(self.prior["lengthA"]+1) + self.prior["lengthB"]/self.p[1:]
 

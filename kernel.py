@@ -38,7 +38,7 @@ class KernelFunction(object):
 
   def logprior( self ):
     if self.priors is not None:
-      return self.priors.logdensity()
+      return self.priors.logdensity( self.params )
     return 0
   
   def jacobians( self, K, X ):

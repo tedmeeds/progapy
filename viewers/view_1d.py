@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sp
 import pylab as pp
 
-def view( gp, x_range = None, N = 100) : #, fignum = 1 ):
+def view( gp, x_range = None, N = 1000) : #, fignum = 1 ):
   
   # set range for x_test
   if x_range is None:

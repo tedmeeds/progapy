@@ -1,6 +1,7 @@
 import numpy as np
+from progapy.priors.prior_distribution import PriorDistribution
 
-class PriorDistribution( object ):
+class ProductDistribution( PriorDistribution ):
   
   def __init__( self, params ):
     self.set_params( params )

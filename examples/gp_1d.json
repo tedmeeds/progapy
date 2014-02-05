@@ -6,7 +6,7 @@
   },
   "noise" : {
     "type" : "standard_noise_model",
-    "params" : [{"name" : "var", "value" : 0.1 }]
+    "params" : [{"name" : "var", "value" : 0.1, "prior" : {"name" : "igamma", "params" : [3.0,0.1] }}]
   },
   "mean" : {
     "type" : "contant_mean_model",
@@ -20,7 +20,7 @@
     },
     "noise" : {
       "type" : "standard_noise_model",
-      "params" : [{"name" : "var", "value" : 0.1, "prior" : {"name" : "igamma", "params" : [1.0,1.0]}}]
+      "params" : [{"name" : "var", "value" : 0.1, "prior" : {"name" : "igamma", "params" : [0.1,1.0]}}]
     },
     "mean" : {
       "type" : "contant_mean_model",

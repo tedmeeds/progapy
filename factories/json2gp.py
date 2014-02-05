@@ -10,6 +10,8 @@ from progapy.noises.standard_noise_model import StandardNoiseModel
 from progapy.means.zero_mean_model       import ZeroMeanModel
 from progapy.means.constant_mean_model   import ConstantMeanModel
 
+from progapy.factories.json2prior import build_prior
+
 DEFAULT_NOISE_VARIANCE = 0.1
 DEFAULT_AMPLITUDE      = 1.0
 DEFAULT_LENGTH_SCALE   = 1.0
@@ -168,7 +170,9 @@ def build_noise( json_noise ):
     p.append(var_value)
     pr.append( var_prior )
     
-    noise = StandardNoiseModel( np.array( p ), var_prior )
+    prior = build_prior( var_prior )
+    
+    noise = StandardNoiseModel( np.array( p ), prior )
     
   else:
     raise NotImplementedError, "Have not implemented %s yet"%(typeof)

@@ -51,7 +51,7 @@ mean = Mean(mean_params, mean_prior)
 # --------------------------------------------------------------------------- #
 
 
-N = 3
+N = 10
 trainX, trainY = generate_data( N )
 paramsDict = {"kernel":kernel, "noise":noise, "mean":mean}
 gp = GP( paramsDict, trainX, trainY )

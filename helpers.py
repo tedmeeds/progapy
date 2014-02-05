@@ -895,7 +895,14 @@ def invgamma_rnd( alpha, beta, N = 1):
 
 def invgamma_logprob( x, alpha, beta):
   return stats.invgamma.logpdf( x, alpha, scale = beta)
-    
+
+def invgamma_logprob_gradient(x, alpha, beta):   
+  #print " *************************************************************************** "
+  #print " WARNING: invgamma_logprob_gradient called but it really is invgamma_logprob " 
+  #print " *************************************************************************** "
+  #return stats.invgamma.logpdf( x, alpha, scale = beta)
+  return -(alpha+1)/x + beta/pow(x,2)
+  
 def logsumexp(x,dim=0):
     """Compute log(sum(exp(x))) in numerically stable way."""
     #xmax = x.max()

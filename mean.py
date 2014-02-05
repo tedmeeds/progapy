@@ -30,7 +30,7 @@ class MeanModel(object):
 
   def logprior( self ):
     if self.priors is not None:
-      return self.priors.logdensity()
+      return self.priors.logdensity( self.params )
     return 0
     
   def g_params( self, gp, typeof ):

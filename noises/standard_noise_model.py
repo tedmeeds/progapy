@@ -7,9 +7,16 @@ class StandardNoiseModel( NoiseModel ):
     assert len(params) == 1, "fixed model should be vector length 1"
     assert params[0] > 0, "param value should be positive"
     
-    if self.priors is not None:
-      if hasattr(self.priors,'g') is False:
-        raise AttributeError( "StandardNoiseModel.prior has no method g()")
+    # if self.prior is not None:
+#       if hasattr(self.prior,'g') is False:
+#         raise AttributeError( "StandardNoiseModel.prior has no method g()")
+        
+  def set_prior( self, prior ):
+    if prior is not None:
+      assert hasattr(prior,'rand'), "prior need 'rand'"
+      assert hasattr(prior,'logdensity'), "prior need 'logdensity'"
+      assert hasattr(prior,'g_logdensity'), "prior need 'g_logdensity'"
+    self.prior = prior
         
   def var( self, x = None ):
     if x is None:

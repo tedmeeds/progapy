@@ -12,11 +12,11 @@ class PriorDistribution( object ):
   # ========================================== #
   # required implementations by derived classes
   # ========================================== #
-  def check_params( self, x ):
+  def check_params( self ):
     raise NotImplementedError
     
-  def check_input( self, x ):
-    raise NotImplementedError
+  # def check_input( self, x ):
+  #   raise NotImplementedError
     
   def rand( self, N = 1 ):
     raise NotImplementedError
