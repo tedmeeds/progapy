@@ -1,12 +1,14 @@
 from slice import slice_sample
+from hmc import hmc
+
 import numpy as np
 from progapy.gp import generate_gp_logposterior_using_free_params as logposterior_generating_function_wrt_free_params
-from progapy.gp import generate_gp_logposterior_using_params as logposterior_generating_function_wrt_params      
-# params = {"L":0,"R":np.inf,"W":stepwidth,"N":nsamples,"MODE":2)}
-# logdist,params,xinit,L,R,W,N,MODE
+from progapy.gp import generate_gp_logposterior_using_params as logposterior_generating_function_wrt_params  
+from progapy.gp import gp_neglogposterior_using_free_params    
+from progapy.gp import gp_neglogposterior_grad_wrt_free_params 
+
 def sample_gp_with_slice( gp, params ):
   p = gp.get_params()
-  #fp = gp.get_free_params()
   thetas = np.zeros( (params["N"],len(gp.get_params())))
   
   if params.has_key("ids"):
@@ -15,7 +17,6 @@ def sample_gp_with_slice( gp, params ):
     ids = range(len(gp.get_params()))
       
   cur_p = gp.get_params()
-  #cur_fp = gp.get_free_params()
   L,R,stepsizes     = gp.get_range_of_params()
 
   for n in range(params["N"]):
@@ -34,3 +35,20 @@ def sample_gp_with_slice( gp, params ):
     
   gp.set_params(p)
   return thetas
+  
+def sample_gp_with_hmc( gp, params ):
+  
+  hmc_params={}
+  hmc_params["nsamples"]                    = params["nsamples"]
+  hmc_params["neglog_prob_wrt_free_params"] = gp_neglogposterior_using_free_params
+  hmc_params["neglog_grad_wrt_free_params"] = gp_neglogposterior_grad_wrt_free_params
+  hmc_params["L"]                           = params["L"]
+  hmc_params["step_size"]                   = params["step_size"]
+  
+  other_params = gp
+  
+  fp = gp.get_free_params()
+  FP = hmc( fp, hmc_params, other_params )
+  
+  gp.set_free_params(fp)
+  return FP

@@ -5,7 +5,7 @@ class StandardNoiseModel( NoiseModel ):
     
   def check_params(self, params):
     assert len(params) == 1, "fixed model should be vector length 1"
-    assert params[0] > 0, "param value should be positive"
+    assert params[0] >= 0, "param value should be positive"
         
   def set_prior( self, prior ):
     if prior is not None:

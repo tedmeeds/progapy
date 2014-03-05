@@ -95,7 +95,8 @@ def minimize(X, f, grad, args, maxnumlinesearch=None, maxnumfuneval=None, red=1.
                     M = M - 1; i = i + (length<0)              # count epochs?!
                     f3 = f(X+x3*s, *args)
                     df3 = grad(X+x3*s, *args)
-                    if isnan(f3) or isinf(f3) or any(isnan(df3)+isinf(df3)):
+                    #if isnan(f3) or isinf(f3) or any(isnan(df3)+isinf(df3)):
+                    if isnan(f3) or any(isnan(df3)+isinf(df3)):
                         print "an error in minimize error"
                         print "f3 = ", f3
                         print "df3 = ", df3

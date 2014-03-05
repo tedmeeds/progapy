@@ -941,6 +941,9 @@ def gamma_logprob( x, alpha, beta ):
       lp[I] = alpha*np.log(beta) - special.gammaln( alpha ) + (alpha-1)*np.log(x[I]) - beta*x[I]
       return lp
     else:
+      print "*****************"
+      print "gamma_logprob returning -INF"
+      print "*****************"
       return -np.inf
   #else:
   #  assert False, "gamma_logprob got 0 x"

@@ -47,7 +47,7 @@ kernel = Kernel(kernel_params, kernel_prior)
 # --------------------------------------------------------------------------- #
 noise_params = np.array([0.01])
 noise_prior  = None
-noise_prior = GammaDistribution( np.array([0.1,0.1]), np.array([0]) )
+noise_prior = GammaDistribution( np.array([0.5,0.5]), np.array([0]) )
 noise = Noise(noise_params, noise_prior)
 # --------------------------------------------------------------------------- #
 
@@ -55,12 +55,12 @@ noise = Noise(noise_params, noise_prior)
 # MEAN     ------------------------------------------------------------------ #
 # --------------------------------------------------------------------------- #
 mean_params = np.array( [np.random.randn()])
-mean_prior  = NormalDistribution( np.array([0.0,10.1]), np.array([0]) )
+mean_prior  = NormalDistribution( np.array([0.0,0.1]), np.array([0]) )
 mean = Mean(mean_params, mean_prior)
 # --------------------------------------------------------------------------- #
 
 
-N = 10
+N = 15
 trainX, trainY = generate_data( N )
 paramsDict = {"kernel":kernel, "noise":noise, "mean":mean}
 gp = GP( paramsDict, trainX, trainY )
@@ -78,13 +78,25 @@ pp.axis( [-1.25, 1.25, -3, 3])
 np.random.seed(2)
 stepwidth = 0.01
 nsamples = 36
-thetas = gp.sample( method = "slice", params = {"nbrSteps":3,"N":nsamples,"MODE":2})
+thetas = gp.sample( method = "slice", params = {"nbrSteps":3,"N":16,"MODE":2})
 
 pp.figure(2)
 pp.clf()
-for i in range(36):
-  pp.subplot(6,6,i+1)
+for i in range(16):
+  pp.subplot(4,4,i+1)
   gp.set_params(thetas[i])
   view_this_gp( gp, x_range = [-1.5,1.5] )
   pp.axis( [-1.25, 1.25, -2, 2])
+pp.suptitle( "slice samples")
+  
+free_thetas = gp.sample( method = "hmc", params = {"L":50, "nsamples":16, "step_size":0.05})
+
+pp.figure(3)
+pp.clf()
+for i in range(16):
+  pp.subplot(4,4,i+1)
+  gp.set_free_params(free_thetas[i])
+  view_this_gp( gp, x_range = [-1.5,1.5] )
+  pp.axis( [-1.25, 1.25, -2, 2])
+pp.suptitle( "hmc samples")
 pp.show()

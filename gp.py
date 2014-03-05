@@ -142,6 +142,8 @@ class GaussianProcess( object ):
   def sample( self, method, params ):
     if method == "slice":
       return sample.sample_gp_with_slice(self, params)
+    elif method == "hmc":
+      return sample.sample_gp_with_hmc(self, params)
     else:
       assert False, "sample method = %s does not exist."%(method)
       
