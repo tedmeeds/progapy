@@ -1,14 +1,13 @@
 import numpy as np
 import scipy.linalg as spla
+import pdb
+from progapy.component import GaussianProcessComponent
 
-class MeanModel(object):
-  def __init__( self, params = None, priors = None ):
-    self.set_params( params )
-    self.priors = priors
-    
+class MeanModel(GaussianProcessComponent):
+  
   def check_inputs( self, x ):
     ndims = len(x.shape) 
-    assert ndims == 2, "must be a matrix, even is x is a vector"
+    assert ndims == 2, "must be a matrix, even if x is a vector"
     return x.shape 
           
   def set_params( self, params ):
@@ -18,23 +17,6 @@ class MeanModel(object):
   def set_free_params( self, free_params ):
     self.free_params = free_params
     self.params      = free_params
-    
-  def get_nbr_params( self ):
-    return len(self.params)
-  
-  def get_free_params( self ):
-    return self.free_params
-    
-  def get_params( self ):
-    return self.params 
-
-  def logprior( self ):
-    if self.priors is not None:
-      return self.priors.logdensity( self.params )
-    return 0
-    
-  def g_params( self, gp, typeof ):
-    raise NotImplementedError
   
   def mu( self, X ):
     raise NotImplementedError
@@ -44,19 +26,11 @@ class MeanModel(object):
     
   def eval( self, X ):
     return self.mu(X)
-    
-  def g_free_params( self, gp, typeof ):
-    
-    if typeof == "marginal":
-      return self.g_free_params_for_marginal_likelihood( gp )
-    elif typeof == "predictive":
-      return self.g_free_params_for_predictive_likelihood( gp )
-    else:
-      assert False, "no other type of gradient"
           
-  def g_free_params_for_marginal_likelihood( self, gp ):
-    grads    = self.grads( gp.X )
+  def loglikelihood_grad_wrt_free_params_using_marginal_typeof_gp( self, gp ):
     g = np.zeros( self.get_nbr_params() )
+    grads    = self.grads( gp.X )
+    #pdb.set_trace()
     for d in range( self.get_nbr_params() ):
       chol_solve_jacobian = spla.cho_solve((gp.L, True), grads[:,d] )
       g[d] =   np.dot( gp.Kinv_dot_y.T, grads[:,d] )

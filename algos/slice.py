@@ -26,6 +26,16 @@ def slice_sample(logdist,params,xinit,L,R,W,N,MODE):
     %           1 - perform stepping out then shrinkage
     %*          2 - perform doubling then shrinkage
     """
+    
+    print "Running Slice Sampler with:"
+    print "    params = ", params
+    print "    xinit  = ", xinit
+    print "    L      = ", L
+    print "    R      = ", R
+    print "    W      = ", W
+    print "    N      = ", N
+    print "    MODE   = ", MODE
+    
     eps = 0.00001
     #declare space for samples
     x = zeros(N, dtype = float)

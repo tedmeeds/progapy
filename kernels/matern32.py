@@ -17,8 +17,8 @@ class Matern32Function( KernelFunction ):
 
   def compute_asymmetric( self, params, X1, X2 ):
     N1,D1,N2,D2 = self.check_inputs( X1, X2 )
-    
-    return params[0]*np.exp( -0.5*fast_distance( self.params[1:], X1, X2 ) ) 
+    d = np.sqrt(3)*np.sqrt( fast_distance( self.params[1:], X1, X2 ) )
+    return params[0]*(1.0 + d)*np.exp( -d )  
     
   # assumes free parameters...
   def jacobians( self, K, X ):
@@ -33,6 +33,16 @@ class Matern32Function( KernelFunction ):
           g[i,j,d+1] += self.params[0]*r[d]*r[d]*np.exp( -r.sum() ) #/(self.params[d+1])
       
     return g
+    
+  def get_range_of_params( self ):
+    L =  0*np.ones( self.get_nbr_params() )
+    R =  np.inf*np.ones( self.get_nbr_params() )
+    stepsizes =  np.ones( self.get_nbr_params() )
+    
+    if self.prior is not None:
+      return self.prior.get_range_of_params()
+    else:
+      return L,R,stepsizes
     
 
     

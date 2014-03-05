@@ -7,8 +7,8 @@ class FixedNoiseModel( NoiseModel ):
     assert len(params) == 1, "fixed model should be vector length 1"
     assert params[0] > 0, "param value should be positive"
     
-    if self.priors is not None:
-      if hasattr(self.priors,'g') is False:
+    if self.prior is not None:
+      if hasattr(self.prior,'g') is False:
         raise AttributeError( "FixedNoiseModel.prior has no method g()")
     
   def get_nbr_params( self ):

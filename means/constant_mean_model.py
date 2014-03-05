@@ -14,3 +14,13 @@ class ConstantMeanModel( MeanModel ):
     g = np.zeros( (len(X), self.get_nbr_params() ))
     g[:,0] = np.ones( (len(X), ) )
     return g
+    
+  def get_range_of_params( self ):
+    L = -np.inf*np.ones( self.get_nbr_params() )
+    R =  np.inf*np.ones( self.get_nbr_params() )
+    stepsizes =  np.ones( self.get_nbr_params() )
+    
+    if self.prior is not None:
+      return self.prior.get_range_of_params()
+    else:
+      return L,R,stepsizes

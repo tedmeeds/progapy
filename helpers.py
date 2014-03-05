@@ -896,13 +896,25 @@ def invgamma_rnd( alpha, beta, N = 1):
 def invgamma_logprob( x, alpha, beta):
   return stats.invgamma.logpdf( x, alpha, scale = beta)
 
-def invgamma_logprob_gradient(x, alpha, beta):   
+def invgamma_logprob_gradient_x(x, alpha, beta):   
   #print " *************************************************************************** "
   #print " WARNING: invgamma_logprob_gradient called but it really is invgamma_logprob " 
   #print " *************************************************************************** "
   #return stats.invgamma.logpdf( x, alpha, scale = beta)
   return -(alpha+1)/x + beta/pow(x,2)
+
+def invgamma_logprob_gradient_free_x( free_x, alpha, beta):   
+  #print " *************************************************************************** "
+  #print " WARNING: invgamma_logprob_gradient called but it really is invgamma_logprob " 
+  #print " *************************************************************************** "
+  #return stats.invgamma.logpdf( x, alpha, scale = beta)
+  x = np.exp(free_x )
+  # this without transform
+  #return -(alpha+1)/x + beta/pow(x,2)
   
+  # this with
+  return -(alpha+1) + beta/x
+    
 def logsumexp(x,dim=0):
     """Compute log(sum(exp(x))) in numerically stable way."""
     #xmax = x.max()
@@ -917,14 +929,42 @@ def logsumexp(x,dim=0):
         raise 'dim ' + str(dim) + 'not supported'
         
 def gamma_logprob( x, alpha, beta ):
-  #if all(x) > 0:
-  if beta > 0:
-    return alpha*np.log(beta) - special.gammaln( alpha ) + (alpha-1)*np.log(x+1e-8) - beta*x
+  if all(x>0):
+    if beta > 0:
+      return alpha*np.log(beta) - special.gammaln( alpha ) + (alpha-1)*np.log(x) - beta*x
+    else:
+      assert False, "Beta is zero"
   else:
-    assert False, "Beta is zero"
+    if x.__class__ == np.array:
+      I = pp.find( x > 0.0 )
+      lp = -np.inf*np.zeros( x.shape )
+      lp[I] = alpha*np.log(beta) - special.gammaln( alpha ) + (alpha-1)*np.log(x[I]) - beta*x[I]
+      return lp
+    else:
+      return -np.inf
   #else:
   #  assert False, "gamma_logprob got 0 x"
+
+def gamma_logprob_gradient_x(x, alpha, beta):   
+  #print " *************************************************************************** "
+  #print " WARNING: invgamma_logprob_gradient called but it really is invgamma_logprob " 
+  #print " *************************************************************************** "
+  #return stats.invgamma.logpdf( x, alpha, scale = beta)
+  return (alpha-1)/x - beta
   
+def gamma_logprob_gradient_free_x( free_x, alpha, beta):   
+  #print " *************************************************************************** "
+  #print " WARNING: invgamma_logprob_gradient called but it really is invgamma_logprob " 
+  #print " *************************************************************************** "
+  #return stats.invgamma.logpdf( x, alpha, scale = beta)
+  x = np.exp( free_x )
+  
+  # this is without transform
+  #return (alpha-1)/x - beta
+  
+  # this is with transform
+  return alpha-1 - x*beta
+    
 def beta_logprob( x, alpha, beta ):
   return (alpha-1)*np.log(x) + (beta-1)*np.log(1-x) + special.gammaln( alpha + beta) - special.gammaln( alpha ) - special.gammaln( beta )
   
@@ -1063,6 +1103,11 @@ def gaussian_logpdf( x, mu, sigma ):
 
   return lp
 
+def gaussian_logpdf_gradient_x( x, mu, sigma ):
+  g = - (x-mu)/(sigma**2)
+
+  return g
+  
 def gaussian_pdf( x, mu, sigma ):
   return np.exp(gaussian_logpdf( x, mu, sigma ))
                           

@@ -1,10 +1,8 @@
 import numpy as np
 import scipy.linalg as spla
+from progapy.component import GaussianProcessComponent
 
-class KernelFunction(object):
-  def __init__( self, params, priors = None ):
-    self.set_params( params )
-    self.priors = priors
+class KernelFunction(GaussianProcessComponent):
     
   def check_inputs( self, x1, x2 ):
     ndims1 = len(x1.shape) 
@@ -26,56 +24,10 @@ class KernelFunction(object):
   def set_free_params( self, free_params ):
     self.free_params = free_params
     self.params      = np.exp( free_params )
-    
-  def get_nbr_params( self ):
-    return len(self.params)
-  
-  def get_free_params( self ):
-    return self.free_params
-    
-  def get_params( self ):
-    return self.params 
-
-  def logprior( self ):
-    if self.priors is not None:
-      return self.priors.logdensity( self.params )
-    return 0
-  
-  def jacobians( self, K, X ):
-    raise NotImplementedError
-    
-  def g_free_params( self, gp, typeof ):
-    raise NotImplementedError
-    
-  def g_params( self, gp, typeof ):
-    raise NotImplementedError
-    
-  def k( self, X1, X2 = None, with_self = False ):
-    if X2 is not None:
-      return self.k_asym( X1, X2 )
-      
-    return self.k_sym( X1, with_self )
-    
-  def k_asym( self, X1, X2 ):
-    return self.compute_asymmetric( self.params, X1, X2 )
-    
-  def k_sym( self, X, with_self = False ):
-    return self.compute_symmetric( self.params, X, with_self )
-
-  def g_free_params( self, gp, typeof ):
-    
-    if typeof == "marginal":
-      return self.g_free_params_for_marginal_likelihood( gp )
-    elif typeof == "predictive":
-      return self.g_free_params_for_predictive_likelihood( gp )
-    else:
-      assert False, "no other type of gradient"
-          
-  def g_free_params_for_marginal_likelihood( self, gp ):
-    g    = np.zeros( ( gp.N,gp.N,self.get_nbr_params() ) )
-    J    = self.jacobians( gp.gram, gp.X )
-    
+       
+  def loglikelihood_grad_wrt_free_params_using_marginal_typeof_gp( self, gp ):
     g = np.zeros( self.get_nbr_params() )
+    J    = self.jacobians( gp.gram, gp.X )
     for d in range( self.get_nbr_params() ):
       chol_solve_jacobian = spla.cho_solve((gp.L, True), J[:,:,d] )
       g[d] =   0.5*np.dot( np.dot( gp.Kinv_dot_y.T, J[:,:,d] ), gp.Kinv_dot_y )\
@@ -90,4 +42,16 @@ class KernelFunction(object):
       pdb.set_trace()
     return g
     
-  
+  def jacobians( self, K, X ):
+    raise NotImplementedError
+
+  def k( self, X1, X2 = None, with_self = False ):
+    if X2 is not None:
+      return self.k_asym( X1, X2 )
+    return self.k_sym( X1, with_self )
+    
+  def k_asym( self, X1, X2 ):
+    return self.compute_asymmetric( self.params, X1, X2 )
+    
+  def k_sym( self, X, with_self = False ):
+    return self.compute_symmetric( self.params, X, with_self )

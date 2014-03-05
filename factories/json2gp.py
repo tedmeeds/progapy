@@ -10,7 +10,7 @@ from progapy.noises.standard_noise_model import StandardNoiseModel
 from progapy.means.zero_mean_model       import ZeroMeanModel
 from progapy.means.constant_mean_model   import ConstantMeanModel
 
-from progapy.factories.json2prior import build_prior
+from progapy.factories.json2prior import build_prior, build_composite_prior
 
 DEFAULT_NOISE_VARIANCE = 0.1
 DEFAULT_AMPLITUDE      = 1.0
@@ -107,97 +107,83 @@ def build_default_mean( dy ):
 # --------------------------------------- #
 # SPECIFIC FACTORIES
 # --------------------------------------- #
+def build_std_kernel_guts( params ):
+  p = []
+  priors = []
+  idx = 0
+  value, prior = json_extract_from_list( params, "name", "amp", ["value","prior"] )
+  
+  p.append(value)
+  priors.append([prior, [idx]]); idx += 1
+  
+  ls_id = 1; ls_str = "ls_%d"%(ls_id)
+  value, prior = json_extract_from_list( params, "name", ls_str, ["value","prior"] )
+  p.append(value)
+  priors.append([prior, [idx]]); idx += 1
+  
+  while value is not None:
+    ls_id += 1; ls_str = "ls_%d"%(ls_id)
+    value, prior = json_extract_from_list( params, "name", ls_str, ["value","prior"] )
+    if value is not None:
+      p.append(value)
+      priors.append([prior, [idx]]); idx += 1
+      
+  p = np.array(p)
+  prior = build_composite_prior( priors )
+  assert len(p) == len(prior.priors), "we are enforcing a prior for each parameter"
+  return p, prior
+      
 def build_kernel( json_kernel ):
-  typeof = json_kernel["type"]
-  params = json_kernel["params"]
   p=[]
-  if typeof == "matern32":
-    amp_value, amp_prior = json_extract_from_list( params, "name", "amp", ["value","prior"] )
-    p.append(amp_value)
-    ls_id = 1; ls_str = "ls_%d"%(ls_id)
-    ls_value, ls_prior = json_extract_from_list( params, "name", ls_str, ["value","prior"] )
-    p.append(ls_value)
-    while ls_value is not None:
-      ls_id += 1; ls_str = "ls_%d"%(ls_id)
-      ls_value, ls_prior = json_extract_from_list( params, "name", ls_str, ["value","prior"] )
-      if ls_value is not None:
-        p.append(ls_value)
-    k = Matern32Function( np.array(p) )
+  priors = []
+  if json_kernel["type"] == "matern32":
+    p,prior = build_std_kernel_guts( json_kernel["params"] )
+    component = Matern32Function( p, prior )
     
-  elif typeof == "matern52":
-    amp_value, amp_prior = json_extract_from_list( params, "name", "amp", ["value","prior"] )
-    p.append(amp_value)
-    ls_id = 1; ls_str = "ls_%d"%(ls_id)
-    ls_value, ls_prior = json_extract_from_list( params, "name", ls_str, ["value","prior"] )
-    p.append(ls_value)
-    while ls_value is not None:
-      ls_id += 1; ls_str = "ls_%d"%(ls_id)
-      ls_value, ls_prior = json_extract_from_list( params, "name", ls_str, ["value","prior"] )
-      if ls_value is not None:
-        p.append(ls_value)
-    k = Matern52Function( np.array(p) )
+  elif json_kernel["type"] == "matern52":
+    p,prior = build_std_kernel_guts( json_kernel["params"] )
+    component = Matern52Function( p, prior )
     
-  elif typeof == "squared_exponential":
-    amp_value, amp_prior = json_extract_from_list( params, "name", "amp", ["value","prior"] )
-    p.append(amp_value)
-    ls_id = 1; ls_str = "ls_%d"%(ls_id)
-    ls_value, ls_prior = json_extract_from_list( params, "name", ls_str, ["value","prior"] )
-    p.append(ls_value)
-    while ls_value is not None:
-      ls_id += 1; ls_str = "ls_%d"%(ls_id)
-      ls_value, ls_prior = json_extract_from_list( params, "name", ls_str, ["value","prior"] )
-      if ls_value is not None:
-        p.append(ls_value)
-    k = SquaredExponentialFunction( np.array(p) )
+  elif json_kernel["type"] == "squared_exponential":
+    p,prior = build_std_kernel_guts( json_kernel["params"] )
+    component = SquaredExponentialFunction( p, prior )
   
   else:
     raise NotImplementedError, "Have not implemented %s yet"%(typeof)
     
-  return k
+  return component
     
 # --------------------------------------- #
 # SPECIFIC FACTORIES : NOISE
 # --------------------------------------- #
 def build_noise( json_noise ):
-  typeof = json_noise["type"]
-  params = json_noise["params"]
-  p=[]
-  pr = []
-  # "params" : [{"name" : "var", "value" : 0.1, "prior" : {"name" : "igamma", "params" : [1.0,1.0]}}]
+  idx = 0
   
-  if typeof == "standard_noise_model":
-    var_value, var_prior = json_extract_from_list( params, "name", "var", ["value","prior"] )
-    p.append(var_value)
-    pr.append( var_prior )
+  if json_noise["type"] == "standard_noise_model":
+    value, prior_def = json_extract_from_list( json_noise["params"], "name", "var", ["value","prior"] )
+    prior = build_prior( prior_def, np.array([idx]) )
     
-    prior = build_prior( var_prior )
-    
-    noise = StandardNoiseModel( np.array( p ), prior )
+    component = StandardNoiseModel( np.array( [value] ), prior )
     
   else:
     raise NotImplementedError, "Have not implemented %s yet"%(typeof)
-  return noise
+  return component
   
 # --------------------------------------- #
 # SPECIFIC FACTORIES : MEANS
 # --------------------------------------- #
 def build_mean( json_means ):
-  typeof = json_means["type"]
-  params = json_means["params"]
-  p=[]
-  pr = []
-  # "params" : [{"name" : "var", "value" : 0.1, "prior" : {"name" : "igamma", "params" : [1.0,1.0]}}]
-  #"name" : "mu", "value" : 1.0
-  if typeof == "contant_mean_model":
-    var_value = json_extract_from_list( params, "name", "mu", ["value"] )
-    p.append(var_value)
-    #pr.append( var_prior )
+  idx = 0
+  
+  if json_means["type"] == "contant_mean_model":
+    value, prior_def = json_extract_from_list( json_means["params"], "name", "mu", ["value","prior"] )
+    prior = build_prior( prior_def, np.array([idx]) )
     
-    means = ConstantMeanModel( np.array( p ) )
+    component = ConstantMeanModel( np.array( [value] ), prior )
     
   else:
     raise NotImplementedError, "Have not implemented %s yet"%(typeof)
-  return means
+  return component
   
 # --------------------------------------- #
 # SPECIFIC FACTORIES : GPs

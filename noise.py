@@ -1,13 +1,8 @@
 import numpy as np
 import scipy.linalg as spla
+from progapy.component import GaussianProcessComponent
 
-class NoiseModel(object):
-  def __init__( self, params, prior = None ):
-
-    self.set_prior( prior )
-    self.set_params( params )
-    self.check_params( params )
-    
+class NoiseModel(GaussianProcessComponent):
     
   def check_params(self, params):
     raise NotImplementedError
@@ -17,35 +12,14 @@ class NoiseModel(object):
     assert ndims == 2, "must be a matrix, even is x is a vector"
       
   def set_params( self, params ):
+    self.check_params( params )
     self.params      = params
     self.free_params = np.log( params )
     
   def set_free_params( self, free_params ):
     self.free_params = free_params
     self.params      = np.exp( free_params )
-    
-  def get_nbr_params( self ):
-    return len(self.params)
-  
-  def get_free_params( self ):
-    return self.free_params
-    
-  def get_params( self ):
-    return self.params 
-
-  def logprior( self ):
-    if self.prior is not None:
-      return self.prior.logdensity( self.params )
-    return 0
-    
-  def g_free_params_logprior( self ):
-    if self.prior is not None:
-      return self.prior.g_logdensity( self.params )*self.params
-    else:
-      return np.zeros( (self.get_nbr_params()))
-      
-  def g_params( self, gp, typeof ):
-    raise NotImplementedError
+    self.check_params( self.params )
     
   def var( self, X = None ):
     raise NotImplementedError
@@ -56,33 +30,20 @@ class NoiseModel(object):
   def f( self, X ):
     return self.var(X)
     
-  def g_free_params( self, gp, typeof ):
-    
-    if typeof == "marginal":
-      return self.g_free_params_for_marginal_likelihood( gp )
-    elif typeof == "predictive":
-      return self.g_free_params_for_predictive_likelihood( gp )
-    else:
-      assert False, "no other type of gradient"
-      
-  def g_free_params_for_predictive_likelihood( self, gp ):
-    pass
-    
-  def g_free_params_for_marginal_likelihood( self, gp ):
-    g    = np.zeros( ( gp.N,gp.N,self.get_nbr_params() ) )
+  def loglikelihood_grad_wrt_free_params_using_marginal_typeof_gp( self, gp ):
+    g = np.zeros( self.get_nbr_params() )
     J    = self.jacobians( gp.gram, gp.X )
     
-    g = np.zeros( self.get_nbr_params() )
     for d in range( self.get_nbr_params() ):
       chol_solve_jacobian = spla.cho_solve((gp.L, True), J[:,:,d] )
       g[d] =   0.5*np.dot( np.dot( gp.Kinv_dot_y.T, J[:,:,d] ), gp.Kinv_dot_y )\
              - 0.5*np.trace( chol_solve_jacobian )
 
-    g += self.g_free_params_logprior()
+    #g += self.g_free_params_logprior()
     ## g[0]  += (self.prior["signalA"]-1) - self.prior["signalB"]*self.p[0]
     ## g[1:] += -(self.prior["lengthA"]+1) + self.prior["lengthB"]/self.p[1:]
 
-    print g, g.shape
+    #print g, g.shape
     if any(np.isnan(g)+np.isinf(g)):
       print "bad grad in kernel"
       pdb.set_trace()

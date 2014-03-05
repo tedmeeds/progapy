@@ -2,8 +2,13 @@ import numpy as np
 
 class PriorDistribution( object ):
   
-  def __init__( self, params ):
+  def __init__( self, params, ids = np.array([0])):
+    self.n = len(ids)
+    self.set_ids( ids )
     self.set_params( params )
+    
+  def set_ids( self, ids ):
+    self.ids = ids
     
   def set_params( self, params ):
     assert self.check_params( params ), "error with params"
@@ -24,7 +29,7 @@ class PriorDistribution( object ):
   def logdensity( self, x ):
     raise NotImplementedError
     
-  def g_logdensity( self, x ):
+  def logdensity_grad_free_x( self, free_x ):
     raise NotImplementedError
     
   # ========================================== #

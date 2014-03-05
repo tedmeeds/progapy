@@ -1,11 +1,7 @@
 import numpy as np
 import scipy as sp
 import pylab as pp
-from progapy.priors.composite_prior import CompositePrior
-from progapy.priors.empty_prior import EmptyPrior
-from progapy.priors.igamma_distribution import InverseGammaDistribution
-from progapy.priors.gamma_distribution import GammaDistribution
-from progapy.priors.normal_distribution import NormalDistribution
+from progapy.factories.json2gp import load_json, build_gp_from_json
 
 from progapy.gps.basic_regression import BasicRegressionGaussianProcess as GP
 from progapy.kernels.squared_exponential import SquaredExponentialFunction as Kernel
@@ -36,9 +32,6 @@ def generate_data( N ):
 # --------------------------------------------------------------------------- #
 kernel_params = np.array([1.50, 0.25])
 kernel_prior  = None
-p1 = GammaDistribution( np.array([0.1,0.1]), np.array([0]) )
-p2 = InverseGammaDistribution( np.array([0.1,0.1]), np.array([1]) )
-kernel_prior = CompositePrior( [p1,p2] )
 kernel = Kernel(kernel_params, kernel_prior)
 # --------------------------------------------------------------------------- #
 
@@ -47,7 +40,6 @@ kernel = Kernel(kernel_params, kernel_prior)
 # --------------------------------------------------------------------------- #
 noise_params = np.array([0.01])
 noise_prior  = None
-noise_prior = GammaDistribution( np.array([0.1,0.1]), np.array([0]) )
 noise = Noise(noise_params, noise_prior)
 # --------------------------------------------------------------------------- #
 
@@ -55,31 +47,59 @@ noise = Noise(noise_params, noise_prior)
 # MEAN     ------------------------------------------------------------------ #
 # --------------------------------------------------------------------------- #
 mean_params = np.array( [np.random.randn()])
-mean_prior  = NormalDistribution( np.array([0.0,10.1]), np.array([0]) )
+mean_prior  = None
 mean = Mean(mean_params, mean_prior)
 # --------------------------------------------------------------------------- #
+    
+filename = "./examples/gp_1d.json"
+json_gp = load_json( filename )
 
+np.random.seed(2)
 
-N = 10
+N = 3
 trainX, trainY = generate_data( N )
-paramsDict = {"kernel":kernel, "noise":noise, "mean":mean}
-gp = GP( paramsDict, trainX, trainY )
+#paramsDict = {"kernel":kernel, "noise":noise, "mean":mean}
+gp = build_gp_from_json( json_gp )
+gp.init_with_this_data( trainX, trainY )  
 
-print gp.logposterior()
+#print gp.marginal_loglikelihood()
+#gp.set_params( np.array([1,2.0,0.01]))
+
+#print gp.marginal_loglikelihood(trainX, trainY)
 
 gp.check_grad( e = 1e-6 )
-gp.optimize( method = "minimize", params = {"maxnumlinesearch":10} )
-pp.close('all')
+#gp.optimize( method = "minimize", params = {"maxnumlinesearch":10} )
 pp.figure(1)
 pp.clf()
 view_this_gp( gp, x_range = [-1.5,1.5] )
 pp.axis( [-1.25, 1.25, -3, 3])
-# 
-np.random.seed(2)
-stepwidth = 0.01
-nsamples = 36
-thetas = gp.sample( method = "slice", params = {"nbrSteps":3,"N":nsamples,"MODE":2})
 
+
+log_noises = np.linspace( -10, 1.0, 500 )
+noises = np.exp(log_noises)
+L = np.zeros( len(noises))
+for i,ln in zip( range(len(log_noises)), log_noises):
+  p = gp.get_params()
+  p[-1] = np.exp( ln )
+  gp.set_params(p)
+  L[i] = gp.loglikelihood()
+  
+
+
+# 
+# stepwidth = 0.01
+nsamples = 100
+stepwidth = 0.2
+thetas = gp.sample( method = "slice", params = {"ids":[-1],"nbrSteps":10,"N":nsamples,"MODE":2})
+
+pp.figure(3)
+pp.clf()
+pp.subplot(2,1,1)
+pp.plot( noises, L )
+pp.subplot(2,1,2)
+pp.hist( thetas[:,-1],50, normed=True, alpha = 0.5)
+#ax = pp.axis()
+#pp.vlines( thetas[:,-1], 0, ax[3])
 pp.figure(2)
 pp.clf()
 for i in range(36):
