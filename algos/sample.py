@@ -37,8 +37,13 @@ def sample_gp_with_slice( gp, params ):
                                params["MODE"] )
       cur_p[i] = X[-1]
     thetas[n,:] = cur_p
-    
-  gp.set_params(p)
+  if params.has_key("set_to_last_sample"):
+    if params["set_to_last_sample"]:
+      gp.set_params(thetas[-1])
+    else:
+      gp.set_params(p)
+  else:
+    gp.set_params(p)
   return thetas
   
 def sample_gp_with_hmc( gp, params ):

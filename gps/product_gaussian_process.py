@@ -124,6 +124,7 @@ class ProductGaussianProcess( object ):
         assert False, "optimize method = %s does not exist."%(method)
   
   def sample( self, method, params ):
+    from progapy.algos import sample
     for gp in self.gps:
       if method == "slice":
         return sample.sample_gp_with_slice(gp, params)

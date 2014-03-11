@@ -392,20 +392,20 @@ class GaussianProcess( object ):
     nbr_p_mu = self.mean.get_nbr_params()
     if nbr_p_mu > 0:
       j += nbr_p_mu
-      print "setting mean to: ", p[i:j] 
+      #print "setting mean to: ", p[i:j] 
       self.mean.set_params( p[i:j] )
       i = j
 
     # wrt the kernel parameters
     j += self.kernel.get_nbr_params() 
-    print "setting kernel to: ", p[i:j] 
+    #print "setting kernel to: ", p[i:j] 
     self.kernel.set_params( p[i:j] )
     i = j
 
     j += self.noise.get_nbr_params()
 
     if self.noise.get_nbr_params() > 0:
-      print "setting noise to: ", p[i:j]
+      #print "setting noise to: ", p[i:j]
       self.noise.set_params(p[i:j])
 
     self.precomputes()
