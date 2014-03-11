@@ -117,14 +117,14 @@ class ProductGaussianProcess( object ):
   def optimize( self, method, params ):
 
     from progapy.algos import optimize
-    for gp in gps:
+    for gp in self.gps:
       if method == "minimize":
         optimize.optimize_gp_with_minimize( gp, params )
       else:
         assert False, "optimize method = %s does not exist."%(method)
   
   def sample( self, method, params ):
-    for gp in gps:
+    for gp in self.gps:
       if method == "slice":
         return sample.sample_gp_with_slice(gp, params)
       elif method == "hmc":
