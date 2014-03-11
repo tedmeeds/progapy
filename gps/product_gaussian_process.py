@@ -6,8 +6,9 @@ import numpy as np
 import pylab as pp
 import pdb
 
-from progapy.algos import optimize
-from progapy.algos import sample
+
+#from progapy.algos import sample
+#from progapy.algos import optimize
   
 class ProductGaussianProcess( object ):
   def __init__( self, gps, trainX = None, trainY = None ):
@@ -47,7 +48,7 @@ class ProductGaussianProcess( object ):
     self.X = trainX.copy()
     self.Y = trainY.copy()
     
-    for gp_id, gp in zip( range(self.nbr_gps), self.gps )
+    for gp_id, gp in zip( range(self.nbr_gps), self.gps ):
       gp[gp_id].init_with_this_data( trainX, trainY[:,gp_id].reshape( (Nx,1) ) )
     self.precomputes()
     
@@ -78,6 +79,8 @@ class ProductGaussianProcess( object ):
     return MU, COV
     
   def optimize( self, method, params ):
+
+    from progapy.algos import optimize
     for gp in gps:
       if method == "minimize":
         optimize.optimize_gp_with_minimize( gp, params )
@@ -94,6 +97,7 @@ class ProductGaussianProcess( object ):
         assert False, "sample method = %s does not exist."%(method)
       
   def check_grad( self, e, RETURNGRADS = False ):
+    from progapy.algos import optimize
     for gp in self.gps:
       optimize.check_gp_gradients( gp, e, RETURNGRADS )
       
