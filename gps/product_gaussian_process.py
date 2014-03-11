@@ -66,7 +66,21 @@ class ProductGaussianProcess( object ):
     MU = np.array(MU)
     COV = np.array(COV)
     return MU, COV
-    
+  
+  def full_posterior_mean_and_data( self, testX ):
+    MU  = []
+    COV = []
+    DCOV = []
+    for gp in self.gps:
+      mu, mu_cov, data_cov = gp.full_posterior_mean_and_data( testX )
+      MU.append( mu )
+      COV.append( mu_cov )
+      DCOV.append( data_cov )
+    MU   = np.array(MU)
+    COV  = np.array(COV)
+    DCOV = np.array(DCOV)
+    return MU, COV, DCOV
+      
   def posterior( self, testX, use_noise = True ):
     MU  = []
     COV = []

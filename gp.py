@@ -53,7 +53,10 @@ class GaussianProcess( object ):
     self.kernel = paramsDict["kernel"] # 
     self.noise  = paramsDict["noise"]  # aka the model for observational noise
     self.mean   = paramsDict["mean"]   # aka the model for the prior mean function
-    
+    self.N      = 0
+    self.D      = 0
+    self.X = None
+    self.Y = None
     if trainX is not None:
       assert trainY is not None, "Must provide trainY too"
       self.init_with_this_data( trainX, trainY )
@@ -87,47 +90,39 @@ class GaussianProcess( object ):
   #   raise NotImplementedError("This GP does not have grad_n_loglike_wrt_free_params!")
   #     
   def full_posterior( self, testX, use_noise = True ):
-    K_y_y = self.kernel.k( testX, testX ) #with_self = False )
-    #self.mu_proj_x = np.linalg.solve( self.L, self.Y - self.mean.f(self.X) )
-    #pdb.set_trace()
+    mu, cov, dcov = self.full_posterior_mean_and_data( testX )
+    
     if use_noise:
-      K_y_y += self.noise.var( testX )
+      return mu, dcov
+    else:
+      return mu, cov
+      
+  def full_posterior_mean_and_data( self, testX ):
+
+    K_y_y = self.kernel.k( testX, testX )
+    noise = self.noise.var( testX )
       
     # if no training data, then use prior...
     if self.N == 0:
       mu = self.mean.eval(testX)
-      return mu, K_y_y
+      return mu, K_y_y, K_y_y + noise
 
     K_y_x = self.kernel.k( testX, self.X )
     
     Linv_dot_Kyx = np.linalg.solve( self.L, K_y_x.T )
     mu = self.mean.f(testX) + np.dot(Linv_dot_Kyx.T, self.Linv_dot_y )
-    # 
-    # K_y_x = self.kernel.eval( Xtest, self.Xtrain, is_1d = self.is_1d, symmetric = False )
-    # 
-    # Ly = np.linalg.solve( self.L_x_x, K_y_x.T )
-    # mu = self.mu.eval(Xtest) + np.dot(Ly.T, self.mu_proj_x )
-    # 
-    #cov = K_y_y - np.dot( np.dot( K_y_x, self.inv_K_x_x ), K_y_x.T )
-    #cov = K_y_y - np.dot( Ly.T, Ly )
-    
-    print "******************************************"
-    print "*********************"
-    print "******************************************"
-    print "*********************"
-    print "assert the predictive cov is positive!!!"
-    print "*********************"
-    print "******************************************"
-    print "*********************"
-    print "******************************************"
+
+      
     cov = K_y_y - np.dot( Linv_dot_Kyx.T, Linv_dot_Kyx )
-    cov2 = K_y_y - np.dot( np.dot( K_y_x, np.linalg.inv(self.gram + self.noise.var( self.X ) ) ), K_y_x.T )
+    dcov = noise + cov
+    #cov2 = K_y_y - np.dot( np.dot( K_y_x, np.linalg.inv(self.gram + self.noise.var( self.X ) ) ), K_y_x.T )
     vr = np.diag(cov)
-    vr2 = np.diag(cov2)
-    vr3 = np.diag(K_y_y) - np.sum(Linv_dot_Kyx**2,axis=0)
+    #vr2 = np.diag(cov2)
+    #vr3 = np.diag(K_y_y) - np.sum(Linv_dot_Kyx**2,axis=0)
     if np.any(vr<0):
       pdb.set_trace()
-    return mu, cov
+      
+    return mu, cov, dcov
     
   def posterior( self, testX, use_noise = True ):
     mu,cov = self.full_posterior( testX, use_noise )
