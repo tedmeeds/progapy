@@ -62,7 +62,7 @@ class GaussianProcess( object ):
       self.init_with_this_data( trainX, trainY )
     self.typeof = "marginal"  
       
-  def init_with_this_data( self, trainX, trainY ):
+  def init_with_this_data( self, trainX, trainY, force_precomputes = True ):
     [Nx,Dx] = trainX.shape
     [Ny,Dy] = trainY.shape
     
@@ -71,11 +71,30 @@ class GaussianProcess( object ):
     
     self.N = Nx; self.D = Dx
     
-    print "TODO: we are copying data, should we?"
+    #print "TODO: we are copying data, should we?"
     self.X = trainX.copy()
     self.Y = trainY.copy()
     
-    self.precomputes()
+    if force_precomputes:
+      self.precomputes()
+  
+  def add_data( self, newX, newY, force_precomputes = True ): 
+    if self.N == 0:
+       return self.init_with_this_data( newX, newY )
+       
+    [Nx,Dx] = newX.shape
+    [Ny,Dy] = newY.shape
+    
+    assert Nx==Ny, "require same nbr of X and Y"
+    assert Dy == 1, "for now, only univariate output"
+    
+    self.X = np.vstack( (self.X, newX ))
+    self.Y = np.vstack( (self.Y, newY ))
+    
+    self.N = len(self.X)
+    
+    if force_precomputes:
+      self.precomputes()
     
   def precomputes( self ):
     raise NotImplementedError("This GP does not have precomputes!")

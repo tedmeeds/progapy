@@ -14,6 +14,9 @@ class ProductGaussianProcess( object ):
   def __init__( self, gps, trainX = None, trainY = None ):
     self.gps = gps
     self.nbr_gps = len(gps)
+    self.N = 0
+    self.X = None
+    self.Y = None
     
     # create array for indexing gps
     self.n_params       = np.zeros( self.nbr_gps, dtype = int  )
@@ -35,12 +38,12 @@ class ProductGaussianProcess( object ):
       assert trainY is not None, "Must provide trainY too"
       self.init_with_this_data( trainX, trainY )
       
-  def init_with_this_data( self, trainX, trainY ):
+  def init_with_this_data( self, trainX, trainY, force_precomputes = True ):
     [Nx,Dx] = trainX.shape
     [Ny,Dy] = trainY.shape
     
     assert Nx==Ny, "require same nbr of X and Y"
-    #assert Dy == 1, "for now, only univariate output"
+    assert Dy == self.nbr_gps, "one for each gp"
     
     self.N = Nx; self.D = Dx
     
@@ -49,9 +52,28 @@ class ProductGaussianProcess( object ):
     self.Y = trainY.copy()
     
     for gp_id, gp in zip( range(self.nbr_gps), self.gps ):
-      gp[gp_id].init_with_this_data( trainX, trainY[:,gp_id].reshape( (Nx,1) ) )
-    self.precomputes()
+      gp.init_with_this_data( trainX, trainY[:,gp_id].reshape( (Nx,1) ), force_precomputes=force_precomputes )
     
+    #self.precomputes()
+  
+  def add_data( self, newX, newY, force_precomputes = True ): 
+    if self.N == 0:
+       return self.init_with_this_data( newX, newY )
+       
+    [Nx,Dx] = newX.shape
+    [Ny,Dy] = newY.shape
+    
+    assert Nx==Ny, "require same nbr of X and Y"
+    assert Dy == 1, "for now, only univariate output"
+    
+    self.X = np.vstack( (self.X, newX ))
+    self.Y = np.vstack( (self.Y, newY ))
+    
+    self.N = len(self.X)
+    
+    for gp_id, gp in zip( range(self.nbr_gps), self.gps ):
+      gp.add_data( newX, newY[:,gp_id].reshape( (Nx,1) ), force_precomputes=force_precomputes )
+        
   def precomputes( self ):
     for gp in self.gps():
       self.precomputes()
