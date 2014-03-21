@@ -7,8 +7,8 @@ class NormalDistribution( PriorDistribution ):
   # ========================================== #
   # required implementations by derived classes
   # ========================================== #
-  def check_params( self, params ):
-    assert params[1] > 0, "variance must be > 0"
+  def check_params( self ):
+    assert self.p[1] > 0, "variance must be > 0"
     return True
     
   def rand( self, N = 1 ):

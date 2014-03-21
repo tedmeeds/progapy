@@ -11,8 +11,8 @@ class PriorDistribution( object ):
     self.ids = ids
     
   def set_params( self, params ):
-    assert self.check_params( params ), "error with params"
     self.p = params
+    assert self.check_params( ), "error with params"
     
   # ========================================== #
   # required implementations by derived classes

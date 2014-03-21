@@ -7,9 +7,9 @@ class InverseGammaDistribution( PriorDistribution ):
   # ========================================== #
   # required implementations by derived classes
   # ========================================== #
-  def check_params( self, params ):
-    assert params[0] > 0, "alpha aka shape must be > 0"
-    assert params[1] > 0, "beta aka scale must be > 0"
+  def check_params( self ):
+    assert self.p[0] > 0, "alpha aka shape must be > 0"
+    assert self.p[1] > 0, "beta aka scale must be > 0"
     return True
   # def check_input( self, x ):
   #   raise NotImplementedError

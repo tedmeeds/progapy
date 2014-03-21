@@ -4,7 +4,7 @@ from progapy.component import GaussianProcessComponent
 
 class NoiseModel(GaussianProcessComponent):
     
-  def check_params(self, params):
+  def check_params(self):
     raise NotImplementedError
     
   def check_inputs( self, x ):
@@ -12,14 +12,14 @@ class NoiseModel(GaussianProcessComponent):
     assert ndims == 2, "must be a matrix, even is x is a vector"
       
   def set_params( self, params ):
-    self.check_params( params )
     self.params      = params
+    self.check_params(  )
     self.free_params = np.log( params )
     
   def set_free_params( self, free_params ):
     self.free_params = free_params
     self.params      = np.exp( free_params )
-    self.check_params( self.params )
+    self.check_params() 
     
   def var( self, X = None ):
     raise NotImplementedError

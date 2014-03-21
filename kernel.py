@@ -17,6 +17,9 @@ class KernelFunction(GaussianProcessComponent):
       
     return N1,D1,N2,D2
   
+  def shrink_length_scales(self, factor ):
+    pass
+    
   def set_params( self, params ):
     self.params      = params
     self.free_params = np.log( params )

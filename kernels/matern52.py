@@ -5,7 +5,10 @@ from progapy.kernel import KernelFunction
 import pdb
 
 class Matern52Function( KernelFunction ):
-      
+  
+  def shrink_length_scales(self, factor ):
+    self.params[1:] *= factor
+    
   def compute_symmetric( self, params, X, with_self ):
     N,D,N2,D2 = self.check_inputs( X, X )
     

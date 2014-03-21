@@ -20,16 +20,16 @@ class ProductGaussianProcess( object ):
     
     # create array for indexing gps
     self.n_params       = np.zeros( self.nbr_gps, dtype = int  )
-    self.start_param_id = np.zeros( self.nbr_gps, dtype = int  )
-    self.end_param_id   = np.zeros( self.nbr_gps, dtype = int  )
+    self.start_param_ids = np.zeros( self.nbr_gps, dtype = int  )
+    self.end_param_ids   = np.zeros( self.nbr_gps, dtype = int  )
     start_id = 0
     end_id   = 0
     self.nbr_params = 0
     for gp_id, gp in zip( range(self.nbr_gps), self.gps):
       n = gp.get_nbr_params()
       end_id += n
-      self.start_param_id[gp_id] = start_id
-      self.end_param_id[gp_id]   = end_id
+      self.start_param_ids[gp_id] = start_id
+      self.end_param_ids[gp_id]   = end_id
       self.n_params[ gp_id ]     =  n
       start_id += n
       self.nbr_params += n
@@ -64,7 +64,7 @@ class ProductGaussianProcess( object ):
     [Ny,Dy] = newY.shape
     
     assert Nx==Ny, "require same nbr of X and Y"
-    assert Dy == 1, "for now, only univariate output"
+    assert Dy == self.nbr_gps, "one for each gp"
     
     self.X = np.vstack( (self.X, newX ))
     self.Y = np.vstack( (self.Y, newY ))
