@@ -23,7 +23,7 @@ def loglike_mog( X, mu, cov, invcov, logdetcov ):
   N,D = X.shape
 
   if D > 1:
-    lpdf = -0.5*D*self.log2pi - 0.5*logdetcov
+    lpdf = -0.5*D*log2pi - 0.5*logdetcov
 
     d = X-mu
     lpdf -= 0.5*np.sum( np.dot( d, invcov )*d, 1 )
