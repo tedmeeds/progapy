@@ -924,7 +924,7 @@ def logsumexp(x,dim=0):
         return xmax + np.log(np.exp(x-xmax).sum(0))
     elif dim==1:
         xmax = x.max(1)
-        return xmax + np.log(np.exp(x-xmax[:,newaxis]).sum(1))
+        return xmax + np.log(np.exp(x-xmax[:,np.newaxis]).sum(1))
     else: 
         raise 'dim ' + str(dim) + 'not supported'
         

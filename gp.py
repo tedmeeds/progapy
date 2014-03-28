@@ -61,7 +61,14 @@ class GaussianProcess( object ):
       assert trainY is not None, "Must provide trainY too"
       self.init_with_this_data( trainX, trainY )
     self.typeof = "marginal"  
-      
+    
+    # keep a list of listeners; whenever new data is added, call add_data on listeners
+    self.subscribed_to_listen_for_data = []
+   
+  def subscribe_add_data( self, obj ):
+    assert hasattr(obj,"add_data")
+    self.subscribed_to_listen_for_data.append( obj )
+    
   def init_with_this_data( self, trainX, trainY, force_precomputes = True ):
     [Nx,Dx] = trainX.shape
     [Ny,Dy] = trainY.shape
@@ -81,7 +88,10 @@ class GaussianProcess( object ):
   def add_data( self, newX, newY, force_precomputes = True ): 
     if self.N == 0:
        return self.init_with_this_data( newX, newY )
-       
+     
+    for sub_object in self.subscribed_to_listen_for_data:
+      sub_object.add_data( newX, newY )
+        
     [Nx,Dx] = newX.shape
     [Ny,Dy] = newY.shape
     
