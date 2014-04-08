@@ -6,7 +6,7 @@ from progapy.kernel import KernelFunction
 import pdb
 log2pi = np.log(2*np.pi)
 
-def bagdata( X, nbrbags ):
+def bagdata( nbrbags, X, Y = None ):
   N,D = X.shape
   
   p = []
@@ -15,9 +15,17 @@ def bagdata( X, nbrbags ):
     p.extend( np.arange(N) )
   p=np.array(p)[ np.random.permutation( N*nbrbags ) ].reshape( (N,nbrbags) )
   
+  if Y is not None:
+    baggedY = []
   for i in range(nbrbags):
     bagged.append( X[p[:,i],:].copy() )
-  return bagged
+    if Y is not None:
+      baggedY.append( Y[p[:,i],:].copy() )
+      
+  if Y is not None:
+    return bagged,baggedY
+  else:
+    return bagged
   
 def loglike_mog( X, mu, cov, invcov, logdetcov ):
   N,D = X.shape
@@ -194,8 +202,9 @@ class MixtureOfGaussians(object):
     return R
 
 class BaggedMixtureOfGaussians(object):
-  def __init__( self, K, X, nBags, priorPi ):
+  def __init__( self, K, X, Y, nBags, priorPi ):
     self.X = X
+    self.Y = Y
     self.K = K
     self.nBags = nBags
     self.em_eps = 1e-5
@@ -208,23 +217,36 @@ class BaggedMixtureOfGaussians(object):
 
   def add_data( self, X, Y = None ):
     self.X = np.vstack( (self.X,X) )
-    newbaggedX = bagdata( self.X, self.nBags )
+    if Y is not None:
+      self.Y = np.vstack( (self.Y,Y) )
+    newbaggedX, newbaggedY = bagdata( self.nBags, self.X, self.Y )  
    
     for mog_id in range( self.nBags ):
       # add offset for indices
       self.baggedX[mog_id] = np.vstack( (self.baggedX[mog_id], newbaggedX[mog_id]) )
+      self.baggedY[mog_id] = np.vstack( (self.baggedY[mog_id], newbaggedY[mog_id]) )
       self.mogs[mog_id].add_data( newbaggedX[mog_id] ) 
-   
+      
+      Y_at_mog = self.baggedY[mog_id]*self.mogs[mog_id].class_conditional_posteriors(self.baggedX[mog_id] )
+      self.amplitudes[mog_id] = np.var(Y_at_mog)
+      
     self.N = len(self.X)
      
   def train( self, verbose = False ):
     self.mogs = []
-    self.baggedX = bagdata( self.X, self.nBags )
+    self.amplitudes = []
+    self.baggedX, self.baggedY = bagdata( self.nBags, self.X, self.Y )
     
     for mog_id in range( self.nBags ):
       MOG = MixtureOfGaussians( self.K, self.baggedX[mog_id], self.priorPi )
       MOG.train()
       self.mogs.append(MOG)
+      var_at_mog = []
+      N_by_K_cond_dist = self.mogs[mog_id].class_conditional_posteriors(self.baggedX[mog_id])
+      for k in range(MOG.K):
+        var_at_mog.append( np.std( self.baggedY[mog_id]*N_by_K_cond_dist[:,k]) )
+      #pdb.set_trace()
+      self.amplitudes.extend(var_at_mog)
     
   def class_conditional_posteriors( self, X ):
     N,D = X.shape
@@ -251,12 +273,17 @@ class MixtureOfGaussiansFunction( KernelFunction ):
         
   def compute_symmetric( self, params, X, with_self ):
     PHI = self.mog.class_conditional_posteriors( X )
-    return np.dot( PHI, PHI.T )
+    
+    #NRM1 = np.sqrt( np.sum(PHI * PHI, 1) )
+    return np.dot( PHI, PHI.T ) #/np.dot( NRM1, NRM1.T )
 
   def compute_asymmetric( self, params, X1, X2 ):
     PHI1 = self.mog.class_conditional_posteriors( X1 )
     PHI2 = self.mog.class_conditional_posteriors( X2 )
-    return np.dot( PHI1, PHI2.T )
+    
+    #NRM1 = np.sqrt( np.sum(PHI1 * PHI1, 1) ).reshape( (len(X1),1))
+    #NRM2 = np.sqrt( np.sum(PHI2 * PHI2, 1) ).reshape( (len(X2),1))
+    return np.dot( PHI1, PHI2.T ) #/np.dot(NRM1, NRM2.T)
     
   # assumes free parameters...
   def jacobians( self, K, X ):
@@ -265,5 +292,20 @@ class MixtureOfGaussiansFunction( KernelFunction ):
   def get_range_of_params( self ):
     pass
     
+class WeightedMixtureOfGaussiansFunction( MixtureOfGaussiansFunction ):
+  
+        
+  def compute_symmetric( self, params, X, with_self ):
+    PHI = self.mog.amplitudes*self.mog.class_conditional_posteriors( X )
+    
+    #NRM1 = np.sqrt( np.sum(PHI * PHI, 1) )
+    return np.dot( PHI, PHI.T ) #/np.dot( NRM1, NRM1.T )
 
+  def compute_asymmetric( self, params, X1, X2 ):
+    PHI1 = self.mog.amplitudes*self.mog.class_conditional_posteriors( X1 )
+    PHI2 = self.mog.amplitudes*self.mog.class_conditional_posteriors( X2 )
+    
+    #pdb.set_trace()
+    return np.dot( PHI1, PHI2.T ) #/np.dot(NRM1, NRM2.T)
+    
     

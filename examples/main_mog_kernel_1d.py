@@ -8,7 +8,8 @@ from progapy.priors.gamma_distribution import GammaDistribution
 from progapy.priors.normal_distribution import NormalDistribution
 
 from progapy.gps.basic_regression import BasicRegressionGaussianProcess as GP
-from progapy.kernels.mog import MixtureOfGaussiansFunction as Kernel
+#from progapy.kernels.mog import MixtureOfGaussiansFunction as Kernel
+from progapy.kernels.mog import WeightedMixtureOfGaussiansFunction as Kernel
 from progapy.kernels.mog import MixtureOfGaussians as MOG
 from progapy.kernels.mog import BaggedMixtureOfGaussians as BAGGEDMOG
 #from progapy.noises.fixed_noise_model import FixedNoiseModel as Noise
@@ -24,8 +25,8 @@ from progapy.viewers.view_1d import view as view_this_gp
 # SINUSOIDAL DATA   --------------------------------------------------------- #
 # --------------------------------------------------------------------------- #
 def generate_data( N ):
-  x = -1 + 2*np.random.rand(N)
-  y = np.sin(2*np.pi*(x+1) ) + 0.1*np.random.randn(N)
+  x = -1.5 + 2*np.random.rand(N)
+  y = y_at_x(x) #np.sin(2*np.pi*(x+1) ) + 0.1*np.random.randn(N)
   
   x = x.reshape( (N,1) )
   y = y.reshape( (N,1) )
@@ -34,7 +35,7 @@ def generate_data( N ):
   
 def y_at_x( x ):
   N = len(x)
-  y = np.sin(2*np.pi*(x+1) ) + 0.1*np.random.randn(N)
+  y = pow(5.0*x,3)*np.sin(2*np.pi*(x+1) ) # + 0.1*np.random.randn(N)
   
   y = y.reshape( (N,1) )
   return y
@@ -65,13 +66,13 @@ mean = Mean(mean_params, mean_prior)
 # --------------------------------------------------------------------------- #
 
 #np.random.seed(0)
-N = 20
+N = 15
 trainX, trainY = generate_data( N )
-K = 5
+K = max(N,5)
 mog = MOG( K, trainX )
-nBags = 15
-priorPi = 0.12
-mog = BAGGEDMOG( K, trainX, nBags, priorPi )
+nBags = 50
+priorPi = 1.0/float(K)
+mog = BAGGEDMOG( K, trainX, trainY, nBags, priorPi )
 mog.train()
 kernel.set_mog(mog)
 
@@ -81,19 +82,22 @@ gp.subscribe_add_data( mog )
 
 gp.optimize( method = "minimize", params = {"maxnumlinesearch":10} )
 
+x_plot = np.linspace( -1.5,1.5,100)
+y_plot =  y_at_x(x_plot)
 pp.close('all')
 pp.figure(1)
 pp.clf()
 pp.subplot(2,1,1)
 view_this_gp( gp, x_range = [-1.5,1.5] )
 #pp.axis( [-1.5, 1.5, -3, 3])
+pp.plot( x_plot, y_plot, 'r')
 pp.xlim(-1.25,1.25)
-pp.ylim(-3,3)
+#pp.ylim(-3,3)
 pp.subplot(2,1,2)
 mog.view1d((-1.5,1.5))
 pp.xlim(-1.25,1.25)
 # 
-n=50
+n=5
 x_test =  0.3*np.random.randn(n) #-0.0*np.ones( n )
 y_test = y_at_x(x_test)
 x_test = x_test.reshape((n,1))
@@ -106,8 +110,9 @@ pp.clf()
 pp.subplot(2,1,1)
 view_this_gp( gp, x_range = [-1.5,1.5] )
 pp.plot(x_test,y_test,'ro')
+pp.plot( x_plot, y_plot, 'r')
 pp.xlim(-1.25,1.25)
-pp.ylim(-3,3)
+#pp.ylim(-3,3)
 pp.subplot(2,1,2)
 mog.view1d((-1.5,1.5))
 pp.xlim(-1.25,1.25)
