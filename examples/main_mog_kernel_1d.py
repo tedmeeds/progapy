@@ -8,7 +8,7 @@ from progapy.priors.gamma_distribution import GammaDistribution
 from progapy.priors.normal_distribution import NormalDistribution
 
 from progapy.gps.basic_regression import BasicRegressionGaussianProcess as GP
-#from progapy.kernels.mog import MixtureOfGaussiansFunction as Kernel
+from progapy.kernels.mog import MixtureOfGaussiansFunction as Kernel
 from progapy.kernels.mog import WeightedMixtureOfGaussiansFunction as Kernel
 from progapy.kernels.mog import MixtureOfGaussians as MOG
 from progapy.kernels.mog import BaggedMixtureOfGaussians as BAGGEDMOG
@@ -45,6 +45,7 @@ def y_at_x( x ):
 # --------------------------------------------------------------------------- #
 # KERNEL   ------------------------------------------------------------------ #
 # --------------------------------------------------------------------------- #
+#kernel_params = {"K":K,"nbags":nbags,"priorPi":priorPi}
 kernel = Kernel( [], None )
 # --------------------------------------------------------------------------- #
 
@@ -70,15 +71,19 @@ N = 15
 trainX, trainY = generate_data( N )
 K = max(N,5)
 mog = MOG( K, trainX )
-nBags = 50
+nBags = 20
 priorPi = 1.0/float(K)
-mog = BAGGEDMOG( K, trainX, trainY, nBags, priorPi )
-mog.train()
+factor=0.01
+#mog = BAGGEDMOG( K, trainX, trainY, nBags, priorPi )
+mog = BAGGEDMOG( K, [], [], nBags, priorPi, factor )
+#mog.train()
+
 kernel.set_mog(mog)
 
 paramsDict = {"kernel":kernel, "noise":noise, "mean":mean}
-gp = GP( paramsDict, trainX, trainY )
-gp.subscribe_add_data( mog )
+gp = GP( paramsDict, trainX, trainY, [kernel], [kernel] )
+#gp.subscribe_add_data( kernel )
+#gp.subscribe_train( kernel )
 
 gp.optimize( method = "minimize", params = {"maxnumlinesearch":10} )
 
@@ -97,7 +102,7 @@ pp.subplot(2,1,2)
 mog.view1d((-1.5,1.5))
 pp.xlim(-1.25,1.25)
 # 
-n=5
+n=20
 x_test =  0.3*np.random.randn(n) #-0.0*np.ones( n )
 y_test = y_at_x(x_test)
 x_test = x_test.reshape((n,1))

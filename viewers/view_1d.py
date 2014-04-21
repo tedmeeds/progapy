@@ -26,6 +26,8 @@ def view( gp, x_range = None, N = 1000) : #, fignum = 1 ):
   f_test, fcov_test = gp.full_posterior( testX, use_noise = False )
   y_test, ycov_test = gp.full_posterior( testX, use_noise = True )
   
+  #f_test, fcov_test, ycov_test = gp.full_posterior_mean_and_data( testX )
+  
   f_test     = np.squeeze( f_test )
   testX      = np.squeeze( testX )
   f_sig_test = np.sqrt( np.diag(fcov_test) )
@@ -33,15 +35,15 @@ def view( gp, x_range = None, N = 1000) : #, fignum = 1 ):
   
   if np.any(np.isnan(f_sig_test)):
     print f_sig_test
-    pdb.set_trace()
+    #pdb.set_trace()
   #pp.figure( fignum )
   #pp.clf()
   
   # full model + noise stddevs
-  pp.fill_between( testX, f_test - 2*y_sig_test, f_test + 2*y_sig_test, color = 'r', alpha=0.5 )
+  pp.fill_between( testX, f_test - 2*y_sig_test, f_test + 2*y_sig_test, color = 'r', alpha=0.25 )
   
   # model stds
-  pp.fill_between( testX, f_test - 2*f_sig_test, f_test + 2*f_sig_test, color = 'b', alpha=0.75 )
+  pp.fill_between( testX, f_test - 2*f_sig_test, f_test + 2*f_sig_test, color = 'b', alpha=0.5 )
   
   pp.plot( testX, f_test + 2*y_sig_test, "r-", lw=0.75)
   pp.plot( testX, f_test - 2*y_sig_test, "r-", lw=0.75)

@@ -5,10 +5,16 @@ from progapy.gps.basic_regression        import BasicRegressionGaussianProcess
 from progapy.kernels.squared_exponential import SquaredExponentialFunction
 from progapy.kernels.matern32            import Matern32Function
 from progapy.kernels.matern52            import Matern52Function
+from progapy.kernels.mog                 import MixtureOfGaussiansFunction
+from progapy.kernels.mog                 import WeightedMixtureOfGaussiansFunction
 from progapy.noises.fixed_noise_model    import FixedNoiseModel
 from progapy.noises.standard_noise_model import StandardNoiseModel
 from progapy.means.zero_mean_model       import ZeroMeanModel
 from progapy.means.constant_mean_model   import ConstantMeanModel
+from progapy.means.mog                   import MixtureOfGaussiansMeanModel
+#from progapy.kernels.mog import MixtureOfGaussiansFunction as Kernel
+from progapy.kernels.mog import MixtureOfGaussians as MOG
+from progapy.kernels.mog import BaggedMixtureOfGaussians as BAGGEDMOG
 
 from progapy.factories.json2prior import build_prior, build_composite_prior
 
@@ -54,9 +60,9 @@ def build_gp_from_json( json_gp, deep = False ):
   # KERNEL
   # ----------------------------------------#
   if json_gp.has_key("kernel"):
-    params["kernel"] = build_kernel( json_gp["kernel"] )
+    params["kernel"], kernel_subscribe_add_data = build_kernel( json_gp["kernel"] )
   else:
-    params["kernel"] = build_default_kernel( dx, dy )
+    params["kernel"], kernel_subscribe_add_data = build_default_kernel( dx, dy )
     
   # ----------------------------------------#
   # NOISE
@@ -70,38 +76,48 @@ def build_gp_from_json( json_gp, deep = False ):
   # MEAN
   # ----------------------------------------#
   if json_gp.has_key("mean"):
-    params["mean"] = build_mean( json_gp["mean"] )
+    params["mean"],mean_subscribe_add_data = build_mean( json_gp["mean"] )
   else:
-    params["mean"] = build_default_mean()
+    params["mean"],mean_subscribe_add_data = build_default_mean()
     
   # ----------------------------------------#
   # GP
   # ----------------------------------------#
+  subscribed_to_listen_for_data = []
+  subscribed_to_listen_for_train = []
+  if kernel_subscribe_add_data:
+    subscribed_to_listen_for_data.append( params["kernel"] )
+    subscribed_to_listen_for_train.append( params["kernel"] )
+  
+  if mean_subscribe_add_data:
+    subscribed_to_listen_for_data.append( params["mean"] )
+    subscribed_to_listen_for_train.append( params["mean"] )  
   if json_gp.has_key("gp"):
-    gp = build_gp( json_gp["gp"], params, X, Y  )
+    gp = build_gp( json_gp["gp"], params, X, Y, subscribed_to_listen_for_data, subscribed_to_listen_for_train  )
   else:
-    gp = build_default_gp( params, X, Y )
+    gp = build_default_gp( params, X, Y, subscribed_to_listen_for_data, subscribed_to_listen_for_train )
+    
     
   return gp
   
 # --------------------------------------- #
 # DEFAULTS FACTORIES
 # --------------------------------------- #
-def build_default_gp( params, X, Y ):
-  return BasicRegressionGaussianProcess( params, X, Y )
+def build_default_gp( params, X, Y, subscribed_to_listen_for_data=[], subscribed_to_listen_for_train=[] ):
+  return BasicRegressionGaussianProcess( params, X, Y, subscribed_to_listen_for_data, subscribed_to_listen_for_train )
   
 def build_default_kernel( dx, dy ):
   params     = np.ones( dx+1 )
   params[0]  = DEFAULT_AMPLITUDE
   params[1:] = DEFAULT_LENGTH_SCALE
   
-  return Matern32( params )
+  return Matern32( params ), False
   
 def build_default_noise( dy ):
   return FixedNoiseModel( DEFAULT_NOISE_VARIANCE )
   
 def build_default_mean( dy ):
-  return ZeroMeanModel()
+  return ZeroMeanModel(), False
   
   
 # --------------------------------------- #
@@ -134,6 +150,7 @@ def build_std_kernel_guts( params ):
   return p, prior
       
 def build_kernel( json_kernel ):
+  subscribe_add_data = False
   p=[]
   priors = []
   if json_kernel["type"] == "matern32":
@@ -147,11 +164,37 @@ def build_kernel( json_kernel ):
   elif json_kernel["type"] == "squared_exponential":
     p,prior = build_std_kernel_guts( json_kernel["params"] )
     component = SquaredExponentialFunction( p, prior )
+    
+  elif json_kernel["type"] == "mog":
+    p,prior = build_std_kernel_guts( json_kernel["params"] )
+    K, prior_def = json_extract_from_list( json_kernel["params"], "name", "K", ["value","prior"] )
+    nbags, prior_def = json_extract_from_list( json_kernel["params"], "name", "nbags", ["value","prior"] )
+    priorPi, prior_def = json_extract_from_list( json_kernel["params"], "name", "priorPi", ["value","prior"] )
+    factor, prior_def = json_extract_from_list( json_kernel["params"], "name", "factor", ["value","prior"] )
+    
+    component = MixtureOfGaussiansFunction()
+    mog = BAGGEDMOG( K, [], [], nbags, priorPi, factor )
+    #mog.train()
+    component.set_mog(mog)
+    subscribe_add_data = True
+    
+  elif json_kernel["type"] == "wmog":
+    p,prior = build_std_kernel_guts( json_kernel["params"] )
+    K, prior_def = json_extract_from_list( json_kernel["params"], "name", "K", ["value","prior"] )
+    nbags, prior_def = json_extract_from_list( json_kernel["params"], "name", "nbags", ["value","prior"] )
+    priorPi, prior_def = json_extract_from_list( json_kernel["params"], "name", "priorPi", ["value","prior"] )
+    factor, prior_def = json_extract_from_list( json_kernel["params"], "name", "factor", ["value","prior"] )
+    
+    component = WeightedMixtureOfGaussiansFunction()
+    mog = BAGGEDMOG( K, [], [], nbags, priorPi, factor )
+    #mog.train()
+    component.set_mog(mog)
+    subscribe_add_data = True
   
   else:
     raise NotImplementedError, "Have not implemented %s yet"%(typeof)
     
-  return component
+  return component, subscribe_add_data
     
 # --------------------------------------- #
 # SPECIFIC FACTORIES : NOISE
@@ -180,17 +223,32 @@ def build_mean( json_means ):
     prior = build_prior( prior_def, np.array([idx]) )
     
     component = ConstantMeanModel( np.array( [value] ), prior )
+  elif json_means["type"] == "wmog":
+    #value, prior_def = json_extract_from_list( json_means["params"], "name", "mu", ["value","prior"] )
+    K, prior_def = json_extract_from_list( json_means["params"], "name", "K", ["value","prior"] )
+    nbags, prior_def = json_extract_from_list( json_means["params"], "name", "nbags", ["value","prior"] )
+    priorPi, prior_def = json_extract_from_list( json_means["params"], "name", "priorPi", ["value","prior"] )
+    factor, prior_def = json_extract_from_list( json_means["params"], "name", "factor", ["value","prior"] )
     
+    component = MixtureOfGaussiansMeanModel()
+    mog = BAGGEDMOG( K, [], [], nbags, priorPi, factor )
+    #mog.train()
+    component.set_mog(mog)
+    subscribe_add_data = True
+    return component, True
+    #prior = build_prior( prior_def, np.array([idx]) )
+  
+    #component = MixtureOfGaussiansMeanModel(  )
   else:
     raise NotImplementedError, "Have not implemented %s yet"%(typeof)
-  return component
+  return component, False
   
 # --------------------------------------- #
 # SPECIFIC FACTORIES : GPs
 # --------------------------------------- #
-def build_gp( typeof, params, X, Y ):
+def build_gp( typeof, params, X, Y, subscribed_to_listen_for_data=[], subscribed_to_listen_for_train=[] ):
   if typeof == "basic_regression":
-    gp = BasicRegressionGaussianProcess( params, X, Y )
+    gp = BasicRegressionGaussianProcess( params, X, Y, subscribed_to_listen_for_data, subscribed_to_listen_for_train )
   else:
     raise NotImplementedError, "Have not implemented %s yet"%(typeof)
   return gp

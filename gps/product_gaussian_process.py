@@ -73,7 +73,11 @@ class ProductGaussianProcess( object ):
     
     for gp_id, gp in zip( range(self.nbr_gps), self.gps ):
       gp.add_data( newX, newY[:,gp_id].reshape( (Nx,1) ), force_precomputes=force_precomputes )
-        
+  
+  def train(self):  
+    for gp_id, gp in zip( range(self.nbr_gps), self.gps ):
+      gp.train( )    
+      
   def precomputes( self ):
     for gp in self.gps():
       self.precomputes()

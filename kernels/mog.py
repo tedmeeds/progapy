@@ -67,7 +67,7 @@ def mog_assignment( X, PI, M, COV, INVCOV, LOGDETCOV ):
   R = np.exp( np.log(PI) + logliks  - ls )
   return R, ls
 
-def mog_update( X, R, K, priorPi = 0):    
+def mog_update( X, R, K, priorPi = 0, factor = 0, mu0 = None, cov0 = None):    
   N,D = X.shape
   M   = np.zeros( (K,D) )
   COV = np.zeros( (K,D,D) )
@@ -80,11 +80,15 @@ def mog_update( X, R, K, priorPi = 0):
     Nk = R[:,k].sum()
     PI[k] = (priorPi + Nk) / N 
     M[k,:] =  np.sum( X*R[:,k].reshape((N,1)),0 ) / (priorPi + Nk)
+    if mu0 is not None:
+      M[k,:] = (1-factor)*M[k,:] + factor*mu0
     I = pp.find(A==k)
     d = (X - M[k,:])*pow(R[:,k].reshape((N,1)),0.5)
     #COV[k,:,:] = np.dot( d.T, d ) / len(I)
 
     COV[k,:,:] = np.dot( d.T, d) / (priorPi + Nk) + 1e-5*np.eye(D)
+    if mu0 is not None:
+      COV[k,:,:] = COV[k,:,:] + factor*cov0
     INVCOV[k,:,:] = np.linalg.inv( COV[k,:,:] )
     LOGDETCOV[k] = np.log( np.linalg.det( COV[k,:,:] ) )
     #A = np.argmax(R,1)
@@ -126,7 +130,7 @@ def kmeans( X, K ):
   N,D = X.shape
   M = X[ np.random.permutation(N)[:K],:]
   A, R, d, err = kmeans_assignment( X, M )
-  print "means error = %0.3f"%(err)
+  #print "means error = %0.3f"%(err)
   if np.isnan(err):
     pdb.set_trace()
   bcontinue = True
@@ -137,24 +141,29 @@ def kmeans( X, K ):
     if dif == 0:
       bcontinue = False
     A = new_A
-    print "means error = %0.3f  changes = %d"%(err,dif)
+    #print "means error = %0.3f  changes = %d"%(err,dif)
     if np.isnan(err):
       pdb.set_trace()
   return M
   
 class MixtureOfGaussians(object):
-  def __init__( self, K, X, priorPi = 1.0 ):
+  def __init__( self, K, X, priorPi = 1.0, factor = 0.1 ):
     self.X = X
     self.K = K
     self.em_eps = 1e-5
     self.priorPi = priorPi
+    self.factor = factor
+    self.mu0 = self.X.mean(0)
+    self.cov0 = np.cov(self.X.T)
 
     self.log2pi = np.log(2*np.pi)
     self.logdets = [] # np.log(np.linalg.det(cov))
 
   def add_data( self, X, Y = None ):
     self.X = np.vstack( (self.X,X) )
-    self.train( init = False, verbose = True )
+    self.mu0 = self.X.mean(0)
+    self.cov0 = np.cov(self.X.T)
+    self.train( init = False, verbose = False )
     
   def view1d( self, xlim ):
     left = xlim[0]
@@ -175,7 +184,7 @@ class MixtureOfGaussians(object):
       self.A, self.R, d, err = kmeans_assignment( self.X, self.M )
       if verbose:
         print "\t running mog first assignment "
-      self.M, self.COV, self.PI, self.INVCOV, self.LOGDETCOV = mog_update( self.X, self.R, self.K, self.priorPi )
+      self.M, self.COV, self.PI, self.INVCOV, self.LOGDETCOV = mog_update( self.X, self.R, self.K, self.priorPi, self.factor, self.mu0, self.cov0 )
       
     #else:
     #  self.R, loglikall = mog_assignment( self.X, self.PI, self.M, self.COV, self.INVCOV, self.LOGDETCOV )
@@ -186,7 +195,7 @@ class MixtureOfGaussians(object):
     while bcontinue:
       self.R, loglikall = mog_assignment( self.X, self.PI, self.M, self.COV, self.INVCOV, self.LOGDETCOV )
       self.loglik = loglikall.mean()
-      self.M, self.COV, self.PI, self.INVCOV, self.LOGDETCOV = mog_update( self.X, self.R, self.K, self.priorPi )
+      self.M, self.COV, self.PI, self.INVCOV, self.LOGDETCOV = mog_update( self.X, self.R, self.K, self.priorPi, self.factor, self.mu0, self.cov0 )
   
       dif = self.loglik - old_loglik
       if dif < self.em_eps:
@@ -202,20 +211,35 @@ class MixtureOfGaussians(object):
     return R
 
 class BaggedMixtureOfGaussians(object):
-  def __init__( self, K, X, Y, nBags, priorPi ):
+  def __init__( self, K, X, Y, nBags, priorPi, factor ):
+    self.trained_once = False
     self.X = X
     self.Y = Y
     self.K = K
     self.nBags = nBags
     self.em_eps = 1e-5
-    self.N,self.D = X.shape
     self.priorPi = priorPi
+    self.factor=factor
+
+    self.N = 0
+    self.D = 0
+    if len(X) > 0:
+      self.N,self.D = X.shape
 
   def view1d( self, xlim ):
     for mog in self.mogs:
       mog.view1d(xlim)
 
+  def init_with_this_data( self, X, Y ):
+    self.X = X
+    self.Y = Y
+    if len(X) > 0:
+      self.N,self.D = X.shape
+    
   def add_data( self, X, Y = None ):
+    if self.trained_once == False:
+      self.train()
+      
     self.X = np.vstack( (self.X,X) )
     if Y is not None:
       self.Y = np.vstack( (self.Y,Y) )
@@ -233,21 +257,43 @@ class BaggedMixtureOfGaussians(object):
     self.N = len(self.X)
      
   def train( self, verbose = False ):
-    self.mogs = []
+    self.mogs       = []
     self.amplitudes = []
+    self.mean_y     = []
     self.baggedX, self.baggedY = bagdata( self.nBags, self.X, self.Y )
     
     for mog_id in range( self.nBags ):
-      MOG = MixtureOfGaussians( self.K, self.baggedX[mog_id], self.priorPi )
-      MOG.train()
+      MOG = MixtureOfGaussians( self.K, self.baggedX[mog_id], self.priorPi, self.factor )
+      MOG.train(verbose=verbose)
       self.mogs.append(MOG)
       var_at_mog = []
+      mean_at_mog = []
       N_by_K_cond_dist = self.mogs[mog_id].class_conditional_posteriors(self.baggedX[mog_id])
+      approxN = N_by_K_cond_dist.sum(0)
       for k in range(MOG.K):
+        var_at_mog.append( np.std( self.baggedY[mog_id]*N_by_K_cond_dist[:,k]) )
+        mean_at_mog.append( np.squeeze( np.dot(self.baggedY[mog_id].T,N_by_K_cond_dist[:,k]) ) )
+      #pdb.set_trace()
+      self.mean_y.extend(mean_at_mog/approxN)
+      #pdb.set_trace()
+      self.amplitudes.extend(var_at_mog)
+    self.amplitudes = np.array(self.amplitudes)
+    self.mean_y = np.array(self.mean_y)
+    self.trained_once = True
+  
+  def update_train(self,verbose=False):  
+    #return
+    self.amplitudes = []
+    for mog_id in range( self.nBags ):
+      self.mogs[mog_id].train(init=False,verbose=verbose)
+      var_at_mog = []
+      N_by_K_cond_dist = self.mogs[mog_id].class_conditional_posteriors(self.baggedX[mog_id])
+      for k in range(self.mogs[mog_id].K):
         var_at_mog.append( np.std( self.baggedY[mog_id]*N_by_K_cond_dist[:,k]) )
       #pdb.set_trace()
       self.amplitudes.extend(var_at_mog)
-    
+    self.amplitudes = np.array(self.amplitudes)
+      
   def class_conditional_posteriors( self, X ):
     N,D = X.shape
     R = np.zeros( (N,self.K*self.nBags) )
@@ -261,6 +307,27 @@ class BaggedMixtureOfGaussians(object):
         
 class MixtureOfGaussiansFunction( KernelFunction ):
   
+  def set_params(self,params=None):
+    self.params = params
+    
+  def train(self):
+    print "MOG train"
+    self.mog.train()
+  
+  def update_train(self):
+    print "MOG update_train"
+    self.mog.update_train()
+    
+  def init_with_this_data( self, X, Y ):
+    self.mog.init_with_this_data(X,Y)
+      
+  def add_data( self,  X, Y = None ):
+    self.mog.add_data( X, Y )
+    if np.random.rand()<0.1:
+      print "MOG update_train"
+      self.mog.train()
+      #self.mog.update_train()
+    
   def set_mog( self, mog ):
     self.mog = mog
     

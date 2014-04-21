@@ -49,7 +49,9 @@ from progapy.algos import optimize
 from progapy.algos import sample
   
 class GaussianProcess( object ):
-  def __init__( self, paramsDict, trainX = None, trainY = None ):
+  def __init__( self, paramsDict, trainX = None, trainY = None, \
+                               subscribed_to_listen_for_data = [], \
+                               subscribed_to_listen_for_train = [] ):
     self.kernel = paramsDict["kernel"] # 
     self.noise  = paramsDict["noise"]  # aka the model for observational noise
     self.mean   = paramsDict["mean"]   # aka the model for the prior mean function
@@ -57,24 +59,34 @@ class GaussianProcess( object ):
     self.D      = 0
     self.X = None
     self.Y = None
+    # keep a list of listeners; whenever new data is added, call add_data on listeners
+    self.subscribed_to_listen_for_data  = subscribed_to_listen_for_data
+    self.subscribed_to_listen_for_train = subscribed_to_listen_for_train
     if trainX is not None:
       assert trainY is not None, "Must provide trainY too"
       self.init_with_this_data( trainX, trainY )
     self.typeof = "marginal"  
     
-    # keep a list of listeners; whenever new data is added, call add_data on listeners
-    self.subscribed_to_listen_for_data = []
    
   def subscribe_add_data( self, obj ):
     assert hasattr(obj,"add_data")
     self.subscribed_to_listen_for_data.append( obj )
     
+  def subscribe_train( self, obj ):
+    assert hasattr(obj,"train")
+    self.subscribed_to_listen_for_train.append( obj )
+  
+  def train(self):  
+    for sub_object in self.subscribed_to_listen_for_train:
+      sub_object.train()
+    self.precomputes()
+    
   def init_with_this_data( self, trainX, trainY, force_precomputes = True ):
     [Nx,Dx] = trainX.shape
     [Ny,Dy] = trainY.shape
     
-    assert Nx==Ny, "require same nbr of X and Y"
-    assert Dy == 1, "for now, only univariate output"
+    assert Nx == Ny, "require same nbr of X and Y"
+    assert Dy == 1,  "for now, only univariate output"
     
     self.N = Nx; self.D = Dx
     
@@ -82,7 +94,12 @@ class GaussianProcess( object ):
     self.X = trainX.copy()
     self.Y = trainY.copy()
     
+    for sub_object in self.subscribed_to_listen_for_data:
+      sub_object.init_with_this_data( self.X, self.Y )
+      
     if force_precomputes:
+      for sub_object in self.subscribed_to_listen_for_train:
+        sub_object.train()
       self.precomputes()
   
   def add_data( self, newX, newY, force_precomputes = True ): 
@@ -104,6 +121,8 @@ class GaussianProcess( object ):
     self.N = len(self.X)
     
     if force_precomputes:
+      #for sub_object in self.subscribed_to_listen_for_train:
+      #  sub_object.train( update = True)
       self.precomputes()
     
   def precomputes( self ):
@@ -149,7 +168,8 @@ class GaussianProcess( object ):
     #vr2 = np.diag(cov2)
     #vr3 = np.diag(K_y_y) - np.sum(Linv_dot_Kyx**2,axis=0)
     if np.any(vr<0):
-      pdb.set_trace()
+      print "BAD VAR IN GP"
+      #pdb.set_trace()
       
     return mu, cov, dcov
     
@@ -194,9 +214,10 @@ class GaussianProcess( object ):
       i = j
 
     # wrt the kernel parameters
-    j += self.kernel.get_nbr_params()  
-    p[i:j,:] = self.kernel.get_params().reshape( (j-i,1) )
-    i = j
+    if self.kernel.get_nbr_params()  > 0:
+      j += self.kernel.get_nbr_params()  
+      p[i:j,:] = self.kernel.get_params().reshape( (j-i,1) )
+      i = j
 
     #j += self.noise_model.get_nbr_params().reshape( (j-i,1) )
     #p[i:j,:] = self.noise_model.get_params().reshape( (j-i,1) )
@@ -205,7 +226,7 @@ class GaussianProcess( object ):
       j += nbr_p_noise
       p[i:j,:] = self.noise.get_params().reshape( (j-i,1) )
       i = j
-    return p.squeeze()
+    return p.reshape( (self.get_nbr_params(),))
     
   def get_free_params( self ):
     p = np.zeros( (self.get_nbr_params(),1))
@@ -220,15 +241,16 @@ class GaussianProcess( object ):
       i = j
 
     # wrt the kernel parameters
-    j += self.kernel.get_nbr_params()  
-    p[i:j,:] = self.kernel.get_free_params().reshape( (j-i,1) )
-    i = j
+    if self.kernel.get_nbr_params()  > 0:
+      j += self.kernel.get_nbr_params()  
+      p[i:j,:] = self.kernel.get_free_params().reshape( (j-i,1) )
+      i = j
 
     j += self.noise.get_nbr_params()
     if self.noise.get_nbr_params() > 0:
       p[i:j,:] = self.noise.get_free_params().reshape( (j-i,1) )
 
-    return p.squeeze()
+    return p.reshape( (self.get_nbr_params(),))
     
   def set_p_or_fp( self, p = None, fp = None ):
     if fp is not None:
@@ -258,11 +280,12 @@ class GaussianProcess( object ):
       i = j
 
     # wrt the kernel parameters
-    j += self.kernel.get_nbr_params()  
-    l,r,s =  self.kernel.prior.get_range_of_params()
-    L[i:j],R[i:j],stepsizes[i:j] = l,r,s
-    #L.extend(l); R.extend(r); stepsizes.extend(s)
-    i = j
+    if self.kernel.get_nbr_params()  > 0:
+      j += self.kernel.get_nbr_params()  
+      l,r,s =  self.kernel.prior.get_range_of_params()
+      L[i:j],R[i:j],stepsizes[i:j] = l,r,s
+      #L.extend(l); R.extend(r); stepsizes.extend(s)
+      i = j
 
     j += self.noise.get_nbr_params()
     if self.noise.get_nbr_params() > 0:
@@ -326,9 +349,10 @@ class GaussianProcess( object ):
       i = j
   
     # wrt the kernel parameters
-    j += self.kernel.get_nbr_params()  
-    g[i:j,:] = self.kernel.loglikelihood_grad_wrt_free_params( self ).reshape( (j-i,1))
-    i = j
+    if self.kernel.get_nbr_params()  > 0:
+      j += self.kernel.get_nbr_params()  
+      g[i:j,:] = self.kernel.loglikelihood_grad_wrt_free_params( self ).reshape( (j-i,1))
+      i = j
   
     j += self.noise.get_nbr_params()
     if self.noise.get_nbr_params() > 0:
@@ -356,9 +380,10 @@ class GaussianProcess( object ):
       i = j
   
     # wrt the kernel parameters
-    j += self.kernel.get_nbr_params()  
-    g[i:j,:] = self.kernel.logprior_grad_wrt_free_params().reshape( (j-i,1))
-    i = j
+    if self.kernel.get_nbr_params()  > 0:
+      j += self.kernel.get_nbr_params()  
+      g[i:j,:] = self.kernel.logprior_grad_wrt_free_params().reshape( (j-i,1))
+      i = j
   
     j += self.noise.get_nbr_params()
     if self.noise.get_nbr_params() > 0:
@@ -381,9 +406,10 @@ class GaussianProcess( object ):
       i = j
   
     # wrt the kernel parameters
-    j += self.kernel.get_nbr_params()  
-    self.kernel.set_free_params( p[i:j] )
-    i = j
+    if self.kernel.get_nbr_params()  > 0:
+      j += self.kernel.get_nbr_params()  
+      self.kernel.set_free_params( p[i:j] )
+      i = j
   
     j += self.noise.get_nbr_params()
     if self.noise.get_nbr_params() > 0:
@@ -407,10 +433,11 @@ class GaussianProcess( object ):
       i = j
 
     # wrt the kernel parameters
-    j += self.kernel.get_nbr_params() 
-    #print "setting kernel to: ", p[i:j] 
-    self.kernel.set_params( p[i:j] )
-    i = j
+    if self.kernel.get_nbr_params()  > 0:
+      j += self.kernel.get_nbr_params() 
+      #print "setting kernel to: ", p[i:j] 
+      self.kernel.set_params( p[i:j] )
+      i = j
 
     j += self.noise.get_nbr_params()
 
