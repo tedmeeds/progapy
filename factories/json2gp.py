@@ -113,10 +113,10 @@ def build_default_kernel( dx, dy ):
   
   return Matern32( params ), False
   
-def build_default_noise( dy ):
+def build_default_noise( dy = None ):
   return FixedNoiseModel( DEFAULT_NOISE_VARIANCE )
   
-def build_default_mean( dy ):
+def build_default_mean( dy = None ):
   return ZeroMeanModel(), False
   
   
@@ -207,7 +207,11 @@ def build_noise( json_noise ):
     prior = build_prior( prior_def, np.array([idx]) )
     
     component = StandardNoiseModel( np.array( [value] ), prior )
+  elif json_noise["type"] == "fixed_noise_model":
+    value, prior_def = json_extract_from_list( json_noise["params"], "name", "var", ["value","prior"] )
+    prior = build_prior( prior_def, np.array([idx]) )
     
+    component = FixedNoiseModel( np.array( [value] ), prior )  
   else:
     raise NotImplementedError, "Have not implemented %s yet"%(typeof)
   return component

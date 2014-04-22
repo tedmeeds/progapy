@@ -3,14 +3,14 @@ from progapy.noise import NoiseModel
 
 class FixedNoiseModel( NoiseModel ):
     
-  def check_params(self, params):
-    assert len(params) == 1, "fixed model should be vector length 1"
-    assert params[0] > 0, "param value should be positive"
-    
-    if self.prior is not None:
-      if hasattr(self.prior,'g') is False:
-        raise AttributeError( "FixedNoiseModel.prior has no method g()")
-    
+  def check_params(self):
+    assert len(self.params) == 1, "fixed model should be vector length 1"
+    assert self.params[0] > 0, "param value should be positive"
+        
+  # def set_prior( self, prior ):  
+#     if prior is not None:
+#       raise AttributeError( "FixedNoiseModel.prior should be None") 
+#     
   def get_nbr_params( self ):
     return 0 # not params because that is the fixed value
       
